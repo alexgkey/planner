@@ -1,0 +1,70 @@
+
+html, body {
+    height: 100%;
+    min-height: 100vh;
+    margin: 0;
+}
+
+body {
+    background: -webkit-linear-gradient(180deg, #c7e7df, #8bc8c4, #45a9b1); /* Chrome 10-25, Safari 5.1-6 */
+    background: linear-gradient(180deg, #c7e7df, #8bc8c4, #45a9b1); /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+    background-attachment: fixed;
+}
+
+
+@media (max-width: 575.98px) {
+    /*
+     Стили для мобильных устройств, чтобы форма выглядела как в нативном приложении.
+     Мы обращаемся к дочерним элементам auth-form, чтобы стили применились.
+    */
+    .auth-form .form-label {
+        font-size: 2rem; /* Увеличиваем текст меток */
+        font-weight: 500;
+    }
+
+    .auth-form .form-control-lg {
+        font-size: 1.25rem; /* Увеличиваем текст внутри полей */
+        padding: 1rem 1.25rem; /* Увеличиваем вертикальные и горизонтальные отступы */
+        min-height: 60px; /* Задаем минимальную высоту */
+    }
+
+    .auth-form .btn-lg {
+        font-size: 1.25rem;
+        padding: 1rem 1.25rem;
+        min-height: 60px;
+    }
+}
+
+
+
+.event-list {
+    max-width: 700px;
+}
+
+.month-title {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6c757d;
+}
+
+.event-item {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.event-date {
+    width: 40px;
+    font-weight: 600;
+    color: #0d6efd;
+}
+
+.event-title {
+    font-size: 0.95rem;
+}
+
+.event-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}

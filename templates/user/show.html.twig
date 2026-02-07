@@ -1,0 +1,53 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ user.email }}{% endblock %}
+
+{% block body %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center py-5">
+    <div class="container" style="max-width: 800px;">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-light py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">{{ user.email }}</h3>
+                    <a href="{{ path('app_user_index') }}" class="btn btn-sm btn-outline-secondary">
+                        Назад к списку
+                    </a>
+                </div>
+            </div>
+            <div class="card-body p-4 p-sm-5">
+                <dl class="row">
+                    <dt class="col-sm-3 text-muted">Email</dt>
+                    <dd class="col-sm-9">{{ user.email }}</dd>
+
+                    <dt class="col-sm-3 text-muted">ФИО</dt>
+                    <dd class="col-sm-9">{{ user.fio }}</dd>
+
+                    <dt class="col-sm-3 text-muted">Телефон</dt>
+                    <dd class="col-sm-9">{{ user.phone }}</dd>
+
+                    <dt class="col-sm-3 text-muted">Отдел</dt>
+                    <dd class="col-sm-9">{{ user.department ? user.department.title : 'Не указан' }}</dd>
+
+                    <dt class="col-sm-3 text-muted">Роли</dt>
+                    <dd class="col-sm-9">{# --- НАЧАЛО БЛОКА ОТОБРАЖЕНИЯ РОЛЕЙ --- #}
+                        {% set role_names = user_roles|flip %}
+
+                        {% set displayed_roles = [] %}
+                        {% for role in user.roles %}
+                            {% if role_names[role] is defined %}
+                                {% set displayed_roles = displayed_roles|merge([role_names[role]]) %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {{ displayed_roles|join(', ') }}
+                        {# --- КОНЕЦ БЛОКА ОТОБРАЖЕНИЯ РОЛЕЙ --- #}</dd>
+                </dl>
+            </div>
+            <div class="card-footer bg-light d-flex justify-content-end gap-2">
+                <a href="{{ path('app_user_edit', {'id': user.id}) }}" class="btn btn-primary">Редактировать</a>
+                {{ include('user/_delete_form.html.twig') }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

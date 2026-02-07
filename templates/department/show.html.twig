@@ -1,0 +1,33 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ department.title }}{% endblock %}
+
+{% block body %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center py-5">
+    <div class="container" style="max-width: 800px;">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-light py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">{{ department.title }}</h3>
+                    <a href="{{ path('app_department_index') }}" class="btn btn-sm btn-outline-secondary">
+                        Назад к списку
+                    </a>
+                </div>
+            </div>
+            <div class="card-body p-4 p-sm-5">
+                <dl class="row">
+                    <dt class="col-sm-3 text-muted">Название</dt>
+                    <dd class="col-sm-9">{{ department.title }}</dd>
+
+                    <dt class="col-sm-3 text-muted">Адрес</dt>
+                    <dd class="col-sm-9">{{ department.address }}</dd>
+                </dl>
+            </div>
+            <div class="card-footer bg-light d-flex justify-content-end gap-2">
+                <a href="{{ path('app_department_edit', {'id': department.id}) }}" class="btn btn-primary">Редактировать</a>
+                {{ include('department/_delete_form.html.twig') }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
