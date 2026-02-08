@@ -18,7 +18,7 @@
     {% if app.user %}
     <header class="d-flex justify-content-center py-3">
         {% set current_route = app.request.attributes.get('_route') %}
-        <ul class="nav nav-pills">
+        <ul class="nav nav-pills align-items-center">
             <li class="nav-item">
                 <a href="{{ path('app_event_index') }}" class="nav-link {% if current_route starts with 'app_event_' %}active{% endif %}">
                     План
@@ -36,7 +36,15 @@
                     </a>
                 </li>
             {% endif %}
-            <li class="nav-item"><a href="{{ path('app_logout') }}" class="nav-link">Выход</a></li>
+
+            <li class="nav-item ms-3">
+                <a href="{{ path('app_instructions') }}" class="nav-link {% if current_route == 'app_instructions' %}active{% endif %}" title="Инструкции">
+                    <i class="bi bi-question-circle fs-5"></i>
+                </a>
+            </li>
+            <li class="nav-item ms-3 border-start ps-3">
+                <a href="{{ path('app_logout') }}" class="nav-link">Выход</a>
+            </li>
         </ul>
     </header>
     {% endif %}
