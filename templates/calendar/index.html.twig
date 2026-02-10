@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Календарь мероприятий{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    {# Подключаем стили FullCalendar через CDN #}
+    <link href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css' rel='stylesheet'>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid py-5 px-lg-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0 h2">Календарь мероприятий</h1>
+
+        <div id="calendar-controls">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-primary" data-view="dayGridMonth">Месяц</button>
+                <button type="button" class="btn btn-secondary" data-view="listQuarter">Квартал</button>
+                <button type="button" class="btn btn-secondary" data-view="listYear">Год</button>
+            </div>
+            <div class="btn-group ms-3" role="group">
+                <button type="button" class="btn btn-outline-secondary" data-nav="prev">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <button type="button" class="btn btn-outline-secondary" data-nav="today">Сегодня</button>
+                <button type="button" class="btn btn-outline-secondary" data-nav="next">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="calendar" class="bg-white p-3 rounded shadow-sm"></div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {# Подключаем FullCalendar и наш скрипт #}
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js'></script>
+    <script src="{{ asset('js/calendar.js') }}"></script>
+{% endblock %}

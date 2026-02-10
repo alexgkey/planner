@@ -51,6 +51,11 @@
                         <dd class="col-sm-8 col-md-9">{{ event.eventAccessibility.getLabel() }}</dd>
                     {% endif %}
 
+                    {% if event.interaction %}
+                        <dt class="col-sm-4 col-md-3 text-muted">Взаимодействие</dt>
+                        <dd class="col-sm-8 col-md-9">{{ event.interaction }}</dd>
+                    {% endif %}
+
                     {% if event.responsible %}
                         <dt class="col-sm-4 col-md-3 text-muted">Ответственный</dt>
                         <dd class="col-sm-8 col-md-9">{{ event.responsible }}</dd>

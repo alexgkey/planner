@@ -29,10 +29,10 @@ class Event
     #[ORM\Column(length: 255)]
     private ?string $title = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(length: 255)]
     private ?string $responsible = null;
 
-    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    #[ORM\Column(type: Types::SMALLINT)]
     private ?int $planned_visitors = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -54,20 +54,23 @@ class Event
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
 
-    #[ORM\Column(type: 'string', enumType: EventLevel::class, nullable: true)]
+    #[ORM\Column(type: 'string', enumType: EventLevel::class)]
     private ?EventLevel $eventLevel = null;
 
-    #[ORM\Column(type: 'string', enumType: OnOffLine::class, nullable: true)]
+    #[ORM\Column(type: 'string', enumType: OnOffLine::class)]
     private ?OnOffLine $onOffLine = null;
 
-    #[ORM\Column(type: 'string', enumType: EventDirection::class, nullable: true)]
+    #[ORM\Column(type: 'string', enumType: EventDirection::class)]
     private ?EventDirection $eventDirection = null;
 
-    #[ORM\Column(type: 'string', enumType: EventAccessibility::class, nullable: true)]
+    #[ORM\Column(type: 'string', enumType: EventAccessibility::class)]
     private ?EventAccessibility $eventAccessibility = null;
 
-    #[ORM\Column(type: 'string', enumType: TargetAudience::class, nullable: true)]
+    #[ORM\Column(type: 'string', enumType: TargetAudience::class)]
     private ?TargetAudience $targetAudience = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $interaction = null;
 
     public function getId(): ?int
     {
@@ -260,6 +263,18 @@ class Event
     public function setTargetAudience(?TargetAudience $targetAudience): static
     {
         $this->targetAudience = $targetAudience;
+
+        return $this;
+    }
+
+    public function getInteraction(): ?string
+    {
+        return $this->interaction;
+    }
+
+    public function setInteraction(?string $interaction): static
+    {
+        $this->interaction = $interaction;
 
         return $this;
     }

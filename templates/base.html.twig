@@ -9,9 +9,7 @@
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
         <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
         {% block stylesheets %}
-        {% endblock %}
-
-        {% block javascripts %}
+            {# Сюда можно будет добавлять стили для конкретных страниц #}
         {% endblock %}
     </head>
     <body>
@@ -25,6 +23,11 @@
                 </a>
             </li>
             {% if is_granted('ROLE_MANAGER') %}
+                <li class="nav-item">
+                    <a href="{{ path('app_calendar') }}" class="nav-link {% if current_route == 'app_calendar' %}active{% endif %}">
+                        Календарь
+                    </a>
+                </li>
                 <li class="nav-item">
                     <a href="{{ path('app_department_index') }}" class="nav-link {% if current_route starts with 'app_department_' %}active{% endif %}">
                         Подразделения
@@ -48,13 +51,14 @@
         </ul>
     </header>
     {% endif %}
-    {#        <div class="container-fluid>">#}
-{#            <main>#}
-                {% block body %}{% endblock %}
-{#            </main>#}
-{#        </div>#}
-    </body>
+
+    {% block body %}{% endblock %}
 
     {# Bootstrap JS #}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+
+    {% block javascripts %}
+        {# Сюда можно будет добавлять скрипты для конкретных страниц #}
+    {% endblock %}
+    </body>
 </html>

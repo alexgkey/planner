@@ -35,37 +35,41 @@ class EventType extends AbstractType
             ->add('eventLevel', EnumType::class, [
                 'class' => EventLevel::class,
                 'label' => 'Уровень',
+                'required' => true,
                 'placeholder' => 'Выберите уровень',
-                'required' => false,
                 'choice_label' => fn(EventLevel $choice) => $choice->getLabel(),
             ])
             ->add('onOffLine', EnumType::class, [
                 'class' => OnOffLine::class,
                 'label' => 'Формат',
+                'required' => true,
                 'placeholder' => 'Выберите формат',
-                'required' => false,
                 'choice_label' => fn(OnOffLine $choice) => $choice->getLabel(),
             ])
             ->add('eventDirection', EnumType::class, [
                 'class' => EventDirection::class,
                 'label' => 'Направление',
+                'required' => true,
                 'placeholder' => 'Выберите направление',
-                'required' => false,
                 'choice_label' => fn(EventDirection $choice) => $choice->getLabel(),
             ])
             ->add('eventAccessibility', EnumType::class, [
                 'class' => EventAccessibility::class,
                 'label' => 'Доступность',
+                'required' => true,
                 'placeholder' => 'Выберите доступность',
-                'required' => false,
                 'choice_label' => fn(EventAccessibility $choice) => $choice->getLabel(),
             ])
             ->add('targetAudience', EnumType::class, [
                 'class' => TargetAudience::class,
                 'label' => 'Целевая аудитория',
+                'required' => true,
                 'placeholder' => 'Выберите аудиторию',
-                'required' => false,
                 'choice_label' => fn(TargetAudience $choice) => $choice->getLabel(),
+            ])
+            ->add('interaction', null, [
+                'label' => 'Взаимодействие с организацией',
+                'required' => false,
             ])
             ->add('note', null, [
                 'label' => 'Примечание',
@@ -73,11 +77,11 @@ class EventType extends AbstractType
             ])
             ->add('responsible', null, [
                 'label' => 'Ответственный',
-                'required' => false,
+                'required' => true,
             ])
             ->add('planned_visitors', null, [
                 'label' => 'Посетители (план)',
-                'required' => false,
+                'required' => true,
             ])
         ;
     }
