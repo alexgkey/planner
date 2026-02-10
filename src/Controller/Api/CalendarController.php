@@ -2,6 +2,7 @@
 
 namespace App\Controller\Api;
 
+use App\Entity\Event;
 use App\Repository\EventRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,30 +17,35 @@ class CalendarController extends AbstractController
     #[IsGranted('ROLE_MANAGER')]
     public function events(EventRepository $eventRepository, UrlGeneratorInterface $urlGenerator): JsonResponse
     {
-        // Извлекаем только активные мероприятия
         $events = $eventRepository->findBy(['isActive' => true]);
         $data = [];
 
         foreach ($events as $event) {
-            // Пропускаем события без даты
             if (!$event->getDate()) {
                 continue;
             }
 
             $data[] = [
+                'id' => $event->getId(), // Добавляем ID для запроса деталей
                 'title' => $event->getTitle(),
                 'start' => $event->getDate()->format('Y-m-d'),
-                // Мы можем добавить и время, если оно у вас появится
-                // 'end' => $event->getEndDate()->format('Y-m-d H:i:s'),
-                'url' => $urlGenerator->generate('app_event_show', ['id' => $event->getId()]),
-                // Дополнительные данные, которые можно использовать на фронтенде
                 'extendedProps' => [
                     'department' => $event->getDepartment() ? $event->getDepartment()->getTitle() : null,
-                    'venue' => $event->getVenue(),
                 ]
             ];
         }
 
         return new JsonResponse($data);
+    }
+
+    #[Route('/event/{id}/details', name: 'api_event_details', methods: ['GET'])]
+    #[IsGranted('ROLE_MANAGER')]
+    public function eventDetails(Event $event): JsonResponse
+    {
+        $html = $this->renderView('event/_modal_content.html.twig', [
+            'event' => $event
+        ]);
+
+        return new JsonResponse(['html' => $html]);
     }
 }

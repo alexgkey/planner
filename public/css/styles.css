@@ -68,3 +68,22 @@ body {
     justify-content: space-between;
     align-items: center;
 }
+
+/* --- Стили для переноса текста в FullCalendar --- */
+.fc-daygrid-event .fc-event-title {
+    white-space: normal !important; /* Разрешаем перенос текста */
+    overflow-wrap: break-word;     /* Разрываем длинные слова, если нужно */
+}
+
+.fc-daygrid-event {
+    align-items: flex-start; /* Выравниваем по верху, чтобы текст начинался с одной линии */
+}
+
+/* --- Улучшаем читаемость текста в событиях календаря --- */
+.fc-daygrid-event {
+    color: #fff !important; /* Делаем основной текст события белым */
+}
+
+.fc-daygrid-event div[style*="color"] {
+    color: rgba(255, 255, 255, 0.8) !important; /* Делаем текст отдела полупрозрачным белым */
+}

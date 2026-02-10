@@ -4,7 +4,6 @@
 
 {% block stylesheets %}
     {{ parent() }}
-    {# Подключаем стили FullCalendar через CDN #}
     <link href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css' rel='stylesheet'>
 {% endblock %}
 
@@ -33,11 +32,19 @@
 
     <div id="calendar" class="bg-white p-3 rounded shadow-sm"></div>
 </div>
+
+{# --- HTML-РАЗМЕТКА ДЛЯ МОДАЛЬНОГО ОКНА --- #}
+<div class="modal fade" id="event-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            {# Сюда будет вставлено содержимое из нашего API #}
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block javascripts %}
     {{ parent() }}
-    {# Подключаем FullCalendar и наш скрипт #}
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js'></script>
     <script src="{{ asset('js/calendar.js') }}"></script>
 {% endblock %}
