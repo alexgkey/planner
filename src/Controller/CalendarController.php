@@ -10,7 +10,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class CalendarController extends AbstractController
 {
     #[Route('/calendar', name: 'app_calendar')]
-    #[IsGranted('ROLE_MANAGER')]
+    #[IsGranted('ROLE_CALENDAR_VIEWER')]
     public function index(): Response
     {
         return $this->render('calendar/index.html.twig');

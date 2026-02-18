@@ -19,7 +19,7 @@ security:
         main:
             lazy: true
             provider: app_user_provider
-            user_checker: App\Security\UserChecker # <--- ДОБАВЛЕНО
+            user_checker: App\Security\UserChecker
             form_login:
                 login_path: app_login
                 check_path: app_login
@@ -53,8 +53,9 @@ security:
         # - { path: ^/profile, roles: ROLE_USER }
 
     role_hierarchy:
+        ROLE_CALENDAR_VIEWER: ROLE_USER
         ROLE_DIR: ROLE_USER
-        ROLE_MANAGER: ROLE_DIR
+        ROLE_MANAGER: [ROLE_DIR, ROLE_CALENDAR_VIEWER]
         ROLE_ADMIN: ROLE_MANAGER
 
 when@test:

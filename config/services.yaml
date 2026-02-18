@@ -8,6 +8,7 @@ parameters:
         'Администратор': 'ROLE_ADMIN'
         'Менеджер': 'ROLE_MANAGER'
         'Директор': 'ROLE_DIR'
+        'Просмотр календаря': 'ROLE_CALENDAR_VIEWER'
 
 services:
     # default configuration for services in *this* file

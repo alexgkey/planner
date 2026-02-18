@@ -14,7 +14,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class CalendarController extends AbstractController
 {
     #[Route('/events', name: 'api_events', methods: ['GET'])]
-    #[IsGranted('ROLE_MANAGER')]
+    #[IsGranted('ROLE_CALENDAR_VIEWER')]
     public function events(EventRepository $eventRepository, UrlGeneratorInterface $urlGenerator): JsonResponse
     {
         $events = $eventRepository->findBy(['isActive' => true]);
@@ -26,7 +26,7 @@ class CalendarController extends AbstractController
             }
 
             $data[] = [
-                'id' => $event->getId(), // Добавляем ID для запроса деталей
+                'id' => $event->getId(),
                 'title' => $event->getTitle(),
                 'start' => $event->getDate()->format('Y-m-d'),
                 'extendedProps' => [
@@ -39,7 +39,7 @@ class CalendarController extends AbstractController
     }
 
     #[Route('/event/{id}/details', name: 'api_event_details', methods: ['GET'])]
-    #[IsGranted('ROLE_MANAGER')]
+    #[IsGranted('ROLE_CALENDAR_VIEWER')]
     public function eventDetails(Event $event): JsonResponse
     {
         $html = $this->renderView('event/_modal_content.html.twig', [

@@ -22,12 +22,14 @@
                     План
                 </a>
             </li>
-            {% if is_granted('ROLE_MANAGER') %}
+            {% if is_granted('ROLE_CALENDAR_VIEWER') %}
                 <li class="nav-item">
                     <a href="{{ path('app_calendar') }}" class="nav-link {% if current_route == 'app_calendar' %}active{% endif %}">
                         Календарь
                     </a>
                 </li>
+            {% endif %}
+            {% if is_granted('ROLE_MANAGER') %}
                 <li class="nav-item">
                     <a href="{{ path('app_department_index') }}" class="nav-link {% if current_route starts with 'app_department_' %}active{% endif %}">
                         Подразделения
