@@ -28,6 +28,7 @@ final class EventController extends AbstractController
     }
 
     #[Route('/new', name: 'app_event_new', methods: ['GET', 'POST'])]
+    #[IsGranted('ROLE_DIR')] // <-- ДОБАВЛЕНА ПРОВЕРКА
     public function new(Request $request, EntityManagerInterface $entityManager): Response
     {
         $event = new Event();
@@ -35,7 +36,6 @@ final class EventController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->denyAccessUnlessGranted('IS_AUTHENTICATED_FULLY');
             $user = $this->getUser();
             $event->setCreator($user);
             $event->setDepartment($user->getDepartment());
@@ -62,6 +62,8 @@ final class EventController extends AbstractController
     #[Route('/{id}/edit', name: 'app_event_edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, Event $event, EntityManagerInterface $entityManager): Response
     {
+        $this->denyAccessUnlessGranted('EVENT_EDIT', $event);
+
         $form = $this->createForm(EventType::class, $event);
         $form->handleRequest($request);
 
@@ -80,6 +82,8 @@ final class EventController extends AbstractController
     #[Route('/{id}', name: 'app_event_delete', methods: ['POST'])]
     public function delete(Request $request, Event $event, EntityManagerInterface $entityManager): Response
     {
+        $this->denyAccessUnlessGranted('EVENT_EDIT', $event);
+
         if ($this->isCsrfTokenValid('delete'.$event->getId(), $request->getPayload()->getString('_token'))) {
             $event->setIsActive(false);
             $entityManager->flush();

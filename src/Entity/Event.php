@@ -72,6 +72,9 @@ class Event
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $interaction = null;
 
+    #[ORM\OneToOne(mappedBy: 'event', targetEntity: EventReport::class, cascade: ['persist', 'remove'])]
+    private ?EventReport $report = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -275,6 +278,23 @@ class Event
     public function setInteraction(?string $interaction): static
     {
         $this->interaction = $interaction;
+
+        return $this;
+    }
+
+    public function getReport(): ?EventReport
+    {
+        return $this->report;
+    }
+
+    public function setReport(EventReport $report): static
+    {
+        // set the owning side of the relation if necessary
+        if ($report->getEvent() !== $this) {
+            $report->setEvent($this);
+        }
+
+        $this->report = $report;
 
         return $this;
     }

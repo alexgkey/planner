@@ -4,64 +4,70 @@
     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 </div>
 <div class="modal-body">
+    {# --- ДАННЫЕ О МЕРОПРИЯТИИ --- #}
     <dl class="row gy-3">
-        {% if event.date %}
-            <dt class="col-sm-4 text-muted">Дата проведения</dt>
-            <dd class="col-sm-8">{{ event.date|date('d.m.Y') }}</dd>
-        {% endif %}
-
-        {% if event.venue %}
-            <dt class="col-sm-4 text-muted">Место проведения</dt>
-            <dd class="col-sm-8">{{ event.venue }}</dd>
-        {% endif %}
-
-        {% if event.onOffLine %}
-            <dt class="col-sm-4 text-muted">Формат</dt>
-            <dd class="col-sm-8">{{ event.onOffLine.getLabel() }}</dd>
-        {% endif %}
-
-        {% if event.eventLevel %}
-            <dt class="col-sm-4 text-muted">Уровень</dt>
-            <dd class="col-sm-8">{{ event.eventLevel.getLabel() }}</dd>
-        {% endif %}
-
-        {% if event.eventDirection %}
-            <dt class="col-sm-4 text-muted">Направление</dt>
-            <dd class="col-sm-8">{{ event.eventDirection.getLabel() }}</dd>
-        {% endif %}
-
-        {% if event.targetAudience %}
-            <dt class="col-sm-4 text-muted">Целевая аудитория</dt>
-            <dd class="col-sm-8">{{ event.targetAudience.getLabel() }}</dd>
-        {% endif %}
-
-        {% if event.eventAccessibility %}
-            <dt class="col-sm-4 text-muted">Доступность</dt>
-            <dd class="col-sm-8">{{ event.eventAccessibility.getLabel() }}</dd>
-        {% endif %}
-
-        {% if event.interaction %}
-            <dt class="col-sm-4 text-muted">Взаимодействие</dt>
-            <dd class="col-sm-8">{{ event.interaction }}</dd>
-        {% endif %}
-
-        {% if event.responsible %}
-            <dt class="col-sm-4 text-muted">Ответственный</dt>
-            <dd class="col-sm-8">{{ event.responsible }}</dd>
-        {% endif %}
-
-        {% if event.plannedVisitors %}
-            <dt class="col-sm-4 text-muted">Посетители (план)</dt>
-            <dd class="col-sm-8">{{ event.plannedVisitors }}</dd>
-        {% endif %}
-
-        {% if event.note %}
-            <dt class="col-sm-4 text-muted">Примечание</dt>
-            <dd class="col-sm-8"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.note }}</p></dd>
-        {% endif %}
+        {% if event.date %}<dt class="col-sm-4 text-muted">Дата проведения</dt><dd class="col-sm-8">{{ event.date|date('d.m.Y') }}</dd>{% endif %}
+        {% if event.venue %}<dt class="col-sm-4 text-muted">Место проведения</dt><dd class="col-sm-8">{{ event.venue }}</dd>{% endif %}
+        {% if event.onOffLine %}<dt class="col-sm-4 text-muted">Формат</dt><dd class="col-sm-8">{{ event.onOffLine.getLabel() }}</dd>{% endif %}
+        {% if event.eventLevel %}<dt class="col-sm-4 text-muted">Уровень</dt><dd class="col-sm-8">{{ event.eventLevel.getLabel() }}</dd>{% endif %}
+        {% if event.eventDirection %}<dt class="col-sm-4 text-muted">Направление</dt><dd class="col-sm-8">{{ event.eventDirection.getLabel() }}</dd>{% endif %}
+        {% if event.targetAudience %}<dt class="col-sm-4 text-muted">Целевая аудитория</dt><dd class="col-sm-8">{{ event.targetAudience.getLabel() }}</dd>{% endif %}
+        {% if event.eventAccessibility %}<dt class="col-sm-4 text-muted">Доступность</dt><dd class="col-sm-8">{{ event.eventAccessibility.getLabel() }}</dd>{% endif %}
+        {% if event.interaction %}<dt class="col-sm-4 text-muted">Взаимодействие</dt><dd class="col-sm-8">{{ event.interaction }}</dd>{% endif %}
+        {% if event.responsible %}<dt class="col-sm-4 text-muted">Ответственный</dt><dd class="col-sm-8">{{ event.responsible }}</dd>{% endif %}
+        {% if event.plannedVisitors %}<dt class="col-sm-4 text-muted">Посетители (план)</dt><dd class="col-sm-8">{{ event.plannedVisitors }}</dd>{% endif %}
+        {% if event.note %}<dt class="col-sm-4 text-muted">Примечание</dt><dd class="col-sm-8"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.note }}</p></dd>{% endif %}
     </dl>
+
+    {# --- ДАННЫЕ ОТЧЕТА (ЕСЛИ ОН СУЩЕСТВУЕТ) --- #}
+    {% if event.report %}
+        <hr class="my-4">
+        <h5 class="mb-3">Отчет о мероприятии</h5>
+        <dl class="row gy-3">
+            {# Количественные показатели #}
+            {% if event.report.visitorsCount is not null %}<dt class="col-sm-4 text-muted">Посетители/просмотры</dt><dd class="col-sm-8">{{ event.report.visitorsCount }} чел.</dd>{% endif %}
+            {% if event.report.participantsCount is not null %}<dt class="col-sm-4 text-muted">Участники</dt><dd class="col-sm-8">{{ event.report.participantsCount }} чел.</dd>{% endif %}
+            {% if event.report.disabledVisitorsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. инвалиды</dt><dd class="col-sm-8">{{ event.report.disabledVisitorsCount }} чел.</dd>{% endif %}
+            {% if event.report.seniorsVisitorsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. пенсионеры</dt><dd class="col-sm-8">{{ event.report.seniorsVisitorsCount }} чел.</dd>{% endif %}
+            {% if event.report.adultsVisitorsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. взрослые</dt><dd class="col-sm-8">{{ event.report.adultsVisitorsCount }} чел.</dd>{% endif %}
+            {% if event.report.youthVisitorsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. молодежь</dt><dd class="col-sm-8">{{ event.report.youthVisitorsCount }} чел.</dd>{% endif %}
+            {% if event.report.childrenVisitorsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. дети</dt><dd class="col-sm-8">{{ event.report.childrenVisitorsCount }} чел.</dd>{% endif %}
+            {% if event.report.childrenAtRiskCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. дети на учете</dt><dd class="col-sm-8">{{ event.report.childrenAtRiskCount }} чел.</dd>{% endif %}
+            {% if event.report.smoParticipantsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. участники СВО</dt><dd class="col-sm-8">{{ event.report.smoParticipantsCount }} чел.</dd>{% endif %}
+            {% if event.report.smoFamiliesCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. семьи СВО</dt><dd class="col-sm-8">{{ event.report.smoFamiliesCount }} чел.</dd>{% endif %}
+            {% if event.report.youngFamiliesCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. молодые семьи</dt><dd class="col-sm-8">{{ event.report.youngFamiliesCount }} чел.</dd>{% endif %}
+            {% if event.report.volunteersCount is not null %}<dt class="col-sm-4 text-muted">Волонтеры</dt><dd class="col-sm-8">{{ event.report.volunteersCount }} чел.</dd>{% endif %}
+
+            {# Текстовые поля #}
+            {% if event.report.resultsAssessment %}<dt class="col-sm-4 text-muted">Оценка результатов</dt><dd class="col-sm-8"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.report.resultsAssessment }}</p></dd>{% endif %}
+            {% if event.report.problemsAnalysis %}<dt class="col-sm-4 text-muted">Проблемы и недостатки</dt><dd class="col-sm-8"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.report.problemsAnalysis }}</p></dd>{% endif %}
+            {% if event.report.recommendations %}<dt class="col-sm-4 text-muted">Рекомендации</dt><dd class="col-sm-8"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.report.recommendations }}</p></dd>{% endif %}
+            {% if event.report.publicReportText %}<dt class="col-sm-4 text-muted">Текст для Госпабликов</dt><dd class="col-sm-8"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.report.publicReportText }}</p></dd>{% endif %}
+        </dl>
+
+        {# Фотографии #}
+        {% if event.report.photos is not empty %}
+            <h6 class="mt-4">Фотографии</h6>
+            <div class="row g-2 mt-1">
+                {% for photo in event.report.photos %}
+                    <div class="col-lg-3 col-md-4 col-6">
+                        <a href="{{ vich_uploader_asset(photo, 'imageFile') | imagine_filter('report_large') }}" target="_blank">
+                            <img src="{{ vich_uploader_asset(photo, 'imageFile') | imagine_filter('report_thumbnail') }}" alt="Фото" class="img-fluid rounded">
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endif %}
 </div>
 <div class="modal-footer">
-    <a href="{{ path('app_event_edit', {'id': event.id}) }}" class="btn btn-primary">Редактировать</a>
+    {% if is_granted('EVENT_ADD_REPORT', event) %}
+        <a href="{{ path('app_event_report', {'id': event.id}) }}" class="btn btn-success">
+            {% if event.report %}Редактировать отчет{% else %}Заполнить отчет{% endif %}
+        </a>
+    {% endif %}
+    {% if is_granted('EVENT_EDIT', event) %}
+        <a href="{{ path('app_event_edit', {'id': event.id}) }}" class="btn btn-primary">Редактировать событие</a>
+    {% endif %}
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
 </div>

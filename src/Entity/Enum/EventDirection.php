@@ -15,6 +15,8 @@ enum EventDirection: string
     case PREVENTION_OF_NEGATIVE_PHENOMENA = 'prevention_of_negative_phenomena';
     case SVO_THEMED_EVENTS = 'smo_themed_events';
 
+    case VOLUNTEERING = 'volunteering';
+
     public function getLabel(): string
     {
         return match ($this) {
@@ -28,6 +30,7 @@ enum EventDirection: string
             self::WORK_WITH_DISABLED => 'Работа с инвалидами и лицами с ОВЗ',
             self::PREVENTION_OF_NEGATIVE_PHENOMENA => 'Профилактика негативных явлений',
             self::SVO_THEMED_EVENTS => 'Мероприятия на тему СВО',
+            self::VOLUNTEERING => 'Добровольческая деятельность (волонтеры)',
         };
     }
 }

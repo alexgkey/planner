@@ -1,0 +1,189 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Отчет по мероприятию: {{ event.title }}{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet">
+    <link href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css" rel="stylesheet">
+{% endblock %}
+
+
+{% block body %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center py-5">
+    <div class="container" style="max-width: 900px;">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-light py-3">
+                <h4 class="mb-0">Отчет по мероприятию</h4>
+                <p class="text-muted mb-0 small">{{ event.title }}</p>
+            </div>
+            <div class="card-body p-4 p-sm-5">
+                {{ form_start(form) }}
+
+                <h5>Количественные показатели</h5>
+                <hr class="mt-2">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">{{ form_row(form.visitorsCount) }}</div>
+                    <div class="col-md-6">{{ form_row(form.participantsCount) }}</div>
+                    <div class="col-md-6">{{ form_row(form.disabledVisitorsCount) }}</div>
+                    <div class="col-md-6">{{ form_row(form.seniorsVisitorsCount) }}</div>
+                    <div class="col-md-6">{{ form_row(form.adultsVisitorsCount) }}</div>
+                    <div class="col-md-6">{{ form_row(form.youthVisitorsCount) }}</div>
+                    <div class="col-md-6">{{ form_row(form.childrenVisitorsCount) }}</div>
+                    <div class="col-md-6">{{ form_row(form.childrenAtRiskCount) }}</div>
+                    <div class="col-md-6">{{ form_row(form.smoParticipantsCount) }}</div>
+                    <div class="col-md-6">{{ form_row(form.smoFamiliesCount) }}</div>
+                    <div class="col-md-6">{{ form_row(form.youngFamiliesCount) }}</div>
+                    <div class="col-md-6">{{ form_row(form.volunteersCount) }}</div>
+                </div>
+
+                <h5>Аналитические показатели</h5>
+                <hr class="mt-2">
+                <div class="row g-3 mb-4">
+                    <div class="col-12">{{ form_row(form.resultsAssessment) }}</div>
+                    <div class="col-12">{{ form_row(form.problemsAnalysis) }}</div>
+                    <div class="col-12">{{ form_row(form.recommendations) }}</div>
+                    <div class="col-12">{{ form_row(form.publicReportText) }}</div>
+                </div>
+
+                <h5>Фотографии</h5>
+                <hr class="mt-2">
+
+                <div id="existing-photos-wrapper">
+                    {% if form.vars.data and form.vars.data.photos|length > 0 %}
+                        <p class="text-muted small">Уже загружено: <span id="existing-photos-count">{{ form.vars.data.photos|length }}</span> из {{ max_photos }}</p>
+                        <div class="row g-2 mb-4" id="existing-photos-container">
+                            {% for photo in form.vars.data.photos %}
+                                {% if photo.id and photo.imageName %}
+                                <div class="col-md-4" data-photo-id="{{ photo.id }}">
+                                    <div class="position-relative">
+                                        <a href="{{ vich_uploader_asset(photo, 'imageFile') | imagine_filter('report_large') }}" target="_blank">
+                                            <img src="{{ vich_uploader_asset(photo, 'imageFile') | imagine_filter('report_thumbnail') }}" alt="Фото" class="img-fluid rounded">
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 delete-photo-btn" title="Удалить фото">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div id="new-photos-block"></div>
+
+                <div style="display: none;">
+                    {{ form_row(form.photos) }}
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-5">
+                    <a href="{{ path('app_event_show', {'id': event.id}) }}" class="btn btn-secondary">Отмена</a>
+                    <button class="btn btn-primary">Сохранить отчет</button>
+                </div>
+
+                {{ form_end(form) }}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.js"></script>
+    <script src="https://unpkg.com/filepond-plugin-file-validate-type/dist/filepond-plugin-file-validate-type.js"></script>
+    <script src="https://unpkg.com/filepond-plugin-file-validate-size/dist/filepond-plugin-file-validate-size.js"></script> {# <-- НОВЫЙ ПЛАГИН #}
+    <script src="https://unpkg.com/filepond/dist/filepond.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const maxPhotosTotal = {{ max_photos }};
+            const newPhotosBlock = document.getElementById('new-photos-block');
+            const hiddenInput = document.querySelector('#event_report_photos');
+            let pond = null;
+            let serverFileIds = [];
+
+            function updateFilePondState() {
+                const existingPhotosCount = document.querySelectorAll('#existing-photos-container [data-photo-id]').length;
+                const maxFiles = maxPhotosTotal - existingPhotosCount;
+
+                if (pond) {
+                    pond.destroy();
+                    pond = null;
+                }
+
+                newPhotosBlock.innerHTML = '';
+
+                if (maxFiles > 0) {
+                    const inputElement = document.createElement('input');
+                    inputElement.type = 'file';
+                    inputElement.name = 'filepond';
+                    inputElement.multiple = true;
+                    newPhotosBlock.appendChild(inputElement);
+
+                    pond = FilePond.create(inputElement, {
+                        labelIdle: `Перетащите файлы или <span class="filepond--label-action">Обзор</span> (осталось: ${maxFiles})`,
+                        acceptedFileTypes: ['image/png', 'image/jpeg'],
+                        maxFiles: maxFiles,
+
+                        // --- НОВЫЕ ОПЦИИ ВАЛИДАЦИИ РАЗМЕРА ---
+                        maxFileSize: '5MB',
+                        labelMaxFileSizeExceeded: 'Файл слишком большой',
+                        labelMaxFileSize: 'Максимальный размер файла: {filesize}',
+
+                        server: {
+                            process: '{{ path('api_photo_upload') }}',
+                            revert: '{{ path('api_photo_revert') }}',
+                        },
+                        onprocessfile: (error, file) => {
+                            if (error) return;
+                            serverFileIds.push(file.serverId);
+                            hiddenInput.value = serverFileIds.join(',');
+                        },
+                        onremovefile: (error, file) => {
+                            if (error) return;
+                            const index = serverFileIds.indexOf(file.serverId);
+                            if (index > -1) serverFileIds.splice(index, 1);
+                            hiddenInput.value = serverFileIds.join(',');
+                        }
+                    });
+                } else {
+                    newPhotosBlock.innerHTML = `<p class="text-muted">Вы достигли лимита в ${maxPhotosTotal} фотографии.</p>`;
+                }
+            }
+
+            document.querySelectorAll('.delete-photo-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (!confirm('Вы уверены, что хотите удалить это фото?')) return;
+
+                    const photoContainer = this.closest('[data-photo-id]');
+                    const photoId = photoContainer.dataset.photoId;
+
+                    fetch(`/api/photos/${photoId}`, { method: 'DELETE' })
+                        .then(response => {
+                            if (response.ok) {
+                                photoContainer.remove();
+                                const countSpan = document.getElementById('existing-photos-count');
+                                if(countSpan) countSpan.innerText = document.querySelectorAll('#existing-photos-container [data-photo-id]').length;
+                                updateFilePondState();
+                            } else {
+                                alert('Не удалось удалить фото.');
+                            }
+                        });
+                });
+            });
+
+            // Регистрируем все плагины
+            FilePond.registerPlugin(
+                FilePondPluginImagePreview,
+                FilePondPluginFileValidateType,
+                FilePondPluginFileValidateSize // <-- РЕГИСТРАЦИЯ НОВОГО ПЛАГИНА
+            );
+
+            // Первый запуск
+            updateFilePondState();
+        });
+    </script>
+{% endblock %}

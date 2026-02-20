@@ -11,13 +11,12 @@
                 <p class="text-muted mb-0">{{ app.user.department.title }}</p>
             {% endif %}
         </div>
-        <a href="{{ path('app_event_new') }}" class="btn btn-primary d-flex align-items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-calendar2-plus" viewBox="0 0 16 16">
-                <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M2 2a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1z"/>
-                <path d="M2.5 4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5H3a.5.5 0 0 1-.5-.5zM8 8a.5.5 0 0 1 .5.5V10H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V11H6a.5.5 0 0 1 0-1h1.5V8.5A.5.5 0 0 1 8 8"/>
-            </svg>
-            <span class="d-none d-sm-inline ms-2">Новое мероприятие</span>
-        </a>
+        {% if is_granted('ROLE_DIR') %} {# <-- ДОБАВЛЕНА ПРОВЕРКА #}
+            <a href="{{ path('app_event_new') }}" class="btn btn-primary d-flex align-items-center">
+                <i class="bi-plus-lg"></i>
+                <span class="d-none d-sm-inline ms-2">Новое событие</span>
+            </a>
+        {% endif %}
     </div>
 
     {# === СОБЫТИЯ БЕЗ ДАТЫ === #}
@@ -38,7 +37,6 @@
     {% for event in datedEvents %}
         {% set month = event.date|format_datetime(locale='ru', pattern='LLLL yyyy')|capitalize %}
 
-        {# Если начинается новый месяц, закрываем старый div.row и начинаем новый #}
         {% if month != currentMonth %}
             {% if not loop.first %}</div>{% endif %}
             <h4 class="text-muted mb-3 {% if noDateEvents is not empty or currentMonth is not null %}mt-4{% endif %}">{{ month }}</h4>
@@ -48,15 +46,15 @@
 
         <div class="col">{{ block('event_card') }}</div>
 
-        {# Закрываем последний div.row в конце цикла #}
         {% if loop.last %}</div>{% endif %}
     {% endfor %}
 
-    {# === СООБЩЕНИЕ, ЕСЛИ СОБЫТИЙ НЕТ === #}
     {% if events is empty %}
         <div class="text-center text-muted py-5">
             <p class="fs-4">Пока нет запланированных событий.</p>
-            <p>Начните с создания нового события.</p>
+            {% if is_granted('ROLE_DIR') %}
+                <p>Начните с создания нового события.</p>
+            {% endif %}
         </div>
     {% endif %}
 </div>
@@ -68,14 +66,17 @@
     <div class="card-body p-3 d-flex flex-column">
         <div class="d-flex justify-content-between align-items-start mb-2">
             <h6 class="card-title mb-0 me-2">{{ event.title }}</h6>
-            {% if event.date %}
-                <div class="text-end text-nowrap">
-                    <span class="fw-bold text-primary">{{ event.date|date('d') }}</span>
+            <div class="text-end text-nowrap">
+                {% if event.report %}
+                    <span class="badge bg-success" title="Отчет сдан"><i class="bi bi-check-circle-fill"></i></span>
+                {% endif %}
+                {% if event.date %}
+                    <span class="fw-bold text-primary ms-2">{{ event.date|date('d') }}</span>
                     <span class="small text-muted text-uppercase">{{ event.date|format_datetime(locale='ru', pattern='MMM') }}</span>
-                </div>
-            {% else %}
-                 <span class="badge bg-secondary">?</span>
-            {% endif %}
+                {% else %}
+                     <span class="badge bg-secondary">?</span>
+                {% endif %}
+            </div>
         </div>
 
         <div class="mt-auto pt-2">
