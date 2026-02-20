@@ -17,8 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
         headerToolbar: false,
         events: '/api/events',
 
-        // --- УБИРАЕМ НАДПИСЬ "ALL-DAY" ---
-        allDayText: '', // Заменяем "all-day" на пустую строку
+        allDayText: '',
 
         buttonText: {
             today: 'Сегодня',
@@ -49,25 +48,28 @@ document.addEventListener('DOMContentLoaded', function() {
         },
 
         eventContent: function(arg) {
-            let department = arg.event.extendedProps.department;
-            let title = arg.event.title;
-            let departmentHtml = department ? `<div style="font-size: 0.75em; color: rgba(255, 255, 255, 0.8);">${department}</div>` : '';
-            let titleHtml = `<div class="fc-event-title">${title}</div>`;
+            const props = arg.event.extendedProps;
+            const title = arg.event.title;
 
-            // Для вида "список" мы хотим другой HTML
+            // --- НОВАЯ ЛОГИКА ---
+            const departmentHtml = props.department ? `<div style="font-size: 0.75em; color: rgba(255, 255, 255, 0.8);">${props.department}</div>` : '';
+            const reportIconHtml = props.hasReport ? `<i class="bi bi-check-circle-fill" style="font-size: 0.7em; vertical-align: middle; margin-left: 4px;" title="Отчет сдан"></i>` : '';
+
+            const titleHtml = `<div class="fc-event-title">${title}</div>`;
+
             if (arg.view.type.startsWith('list')) {
-                departmentHtml = department ? `<span class="text-muted small ms-2">(${department})</span>` : '';
-                return { html: `<div class="fc-event-title">${title}${departmentHtml}</div>` };
+                const departmentText = props.department ? `<span class="text-muted small ms-2">(${props.department})</span>` : '';
+                const reportIconListHtml = props.hasReport ? `<i class="bi bi-check-circle-fill text-success ms-2" title="Отчет сдан"></i>` : '';
+                return { html: `<div class="fc-event-title">${title}${departmentText}${reportIconListHtml}</div>` };
             }
 
-            return { html: departmentHtml + titleHtml };
+            return { html: departmentHtml + titleHtml + reportIconHtml };
         },
 
         views: {
             listMonth: {
-                // Настраиваем формат даты для списка на месяц
                 listDayFormat: { weekday: 'long', month: 'long', day: 'numeric' },
-                listDaySideFormat: false // Убираем дублирование даты сбоку
+                listDaySideFormat: false
             },
             listQuarter: {
                 type: 'list',
