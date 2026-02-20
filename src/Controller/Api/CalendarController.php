@@ -25,12 +25,18 @@ class CalendarController extends AbstractController
                 continue;
             }
 
+            $department = $event->getDepartment();
+            $color = $department ? $department->getColor() : '#3788d8'; // Цвет по умолчанию, если у отдела нет цвета
+
             $data[] = [
                 'id' => $event->getId(),
                 'title' => $event->getTitle(),
                 'start' => $event->getDate()->format('Y-m-d'),
+                'backgroundColor' => $color,
+                'borderColor' => $color,
+                'textColor' => '#ffffff', // Гарантируем белый цвет текста
                 'extendedProps' => [
-                    'department' => $event->getDepartment() ? $event->getDepartment()->getTitle() : null,
+                    'department' => $department ? $department->getTitle() : null,
                 ]
             ];
         }

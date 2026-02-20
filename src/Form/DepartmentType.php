@@ -4,6 +4,7 @@ namespace App\Form;
 
 use App\Entity\Department;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ColorType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -17,6 +18,10 @@ class DepartmentType extends AbstractType
             ])
             ->add('address', null, [
                 'label' => 'Адрес'
+            ])
+            ->add('color', ColorType::class, [
+                'label' => 'Цвет для календаря',
+                'required' => false,
             ])
         ;
     }
