@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Event;
 use App\Entity\EventReport;
+use App\Entity\Enum\EventStatus;
 use App\Entity\Photo;
 use App\Form\EventReportType;
 use Doctrine\ORM\EntityManagerInterface;
@@ -69,10 +70,13 @@ class EventReportController extends AbstractController
                 $report->setLastEditor($this->getUser());
             }
 
+            $event->setStatus(EventStatus::COMPLETED);
+
             $entityManager->persist($report);
+            $entityManager->persist($event); // <-- ЯВНО УКАЗЫВАЕМ DOCTRINE НА ИЗМЕНЕНИЯ В EVENT
             $entityManager->flush();
 
-            $this->addFlash('success', 'Отчет успешно сохранен!');
+            $this->addFlash('success', 'Отчет успешно сохранен! Статус мероприятия обновлен на "Проведено".');
 
             return $this->redirectToRoute('app_event_show', ['id' => $event->getId()]);
         }

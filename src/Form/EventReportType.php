@@ -63,29 +63,13 @@ class EventReportType extends AbstractType
                 'label' => 'Количество волонтеров (чел.)',
                 'required' => false,
             ])
-            ->add('resultsAssessment', TextareaType::class, [
-                'label' => 'Оценка результатов мероприятия',
-                'required' => false,
-                'attr' => ['rows' => 4],
-            ])
-            ->add('problemsAnalysis', TextareaType::class, [
-                'label' => 'Анализ (Проблемы и недостатки мероприятия)',
-                'required' => false,
-                'attr' => ['rows' => 4],
-            ])
-            ->add('recommendations', TextareaType::class, [
-                'label' => 'Предложения и рекомендации по проведению мероприятия',
-                'required' => false,
-                'attr' => ['rows' => 4],
-            ])
             ->add('publicReportText', TextareaType::class, [
-                'label' => 'Отчет по мероприятию (для Госпабликов)',
+                'label' => 'Статья по мероприятию (для Госпабликов)',
                 'required' => false,
                 'attr' => ['rows' => 6],
             ])
-            // Это поле будет скрытым и будет хранить ID временных файлов
             ->add('photos', HiddenType::class, [
-                'mapped' => false, // Не связываем напрямую с коллекцией
+                'mapped' => false,
             ]);
     }
 

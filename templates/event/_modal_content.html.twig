@@ -6,6 +6,15 @@
 <div class="modal-body">
     {# --- ДАННЫЕ О МЕРОПРИЯТИИ --- #}
     <dl class="row gy-3">
+        <dt class="col-sm-4 text-muted">Статус</dt>
+        <dd class="col-sm-8">
+            {% set badge_color = 'primary' %}
+            {% if event.status == 'cancelled' %}{% set badge_color = 'danger' %}{% endif %}
+            {% if event.status == 'completed' %}{% set badge_color = 'success' %}{% endif %}
+            <span class="badge bg-{{ badge_color }}">
+                {{ event.status.getLabel() }}
+            </span>
+        </dd>
         {% if event.date %}<dt class="col-sm-4 text-muted">Дата проведения</dt><dd class="col-sm-8">{{ event.date|date('d.m.Y') }}</dd>{% endif %}
         {% if event.venue %}<dt class="col-sm-4 text-muted">Место проведения</dt><dd class="col-sm-8">{{ event.venue }}</dd>{% endif %}
         {% if event.onOffLine %}<dt class="col-sm-4 text-muted">Формат</dt><dd class="col-sm-8">{{ event.onOffLine.getLabel() }}</dd>{% endif %}
@@ -39,9 +48,6 @@
             {% if event.report.volunteersCount is not null %}<dt class="col-sm-4 text-muted">Волонтеры</dt><dd class="col-sm-8">{{ event.report.volunteersCount }} чел.</dd>{% endif %}
 
             {# Текстовые поля #}
-            {% if event.report.resultsAssessment %}<dt class="col-sm-4 text-muted">Оценка результатов</dt><dd class="col-sm-8"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.report.resultsAssessment }}</p></dd>{% endif %}
-            {% if event.report.problemsAnalysis %}<dt class="col-sm-4 text-muted">Проблемы и недостатки</dt><dd class="col-sm-8"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.report.problemsAnalysis }}</p></dd>{% endif %}
-            {% if event.report.recommendations %}<dt class="col-sm-4 text-muted">Рекомендации</dt><dd class="col-sm-8"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.report.recommendations }}</p></dd>{% endif %}
             {% if event.report.publicReportText %}<dt class="col-sm-4 text-muted">Текст для Госпабликов</dt><dd class="col-sm-8"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.report.publicReportText }}</p></dd>{% endif %}
         </dl>
 
@@ -61,13 +67,5 @@
     {% endif %}
 </div>
 <div class="modal-footer">
-    {% if is_granted('EVENT_ADD_REPORT', event) %}
-        <a href="{{ path('app_event_report', {'id': event.id}) }}" class="btn btn-success">
-            {% if event.report %}Редактировать отчет{% else %}Заполнить отчет{% endif %}
-        </a>
-    {% endif %}
-    {% if is_granted('EVENT_EDIT', event) %}
-        <a href="{{ path('app_event_edit', {'id': event.id}) }}" class="btn btn-primary">Редактировать событие</a>
-    {% endif %}
     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
 </div>

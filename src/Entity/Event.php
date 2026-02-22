@@ -6,6 +6,7 @@ use App\Entity\Enum\EventAccessibility;
 use App\Entity\Enum\EventDirection;
 use App\Entity\Enum\EventLevel;
 use App\Entity\Enum\OnOffLine;
+use App\Entity\Enum\EventStatus;
 use App\Entity\Enum\TargetAudience;
 use App\Repository\EventRepository;
 use Doctrine\DBAL\Types\Types;
@@ -74,6 +75,9 @@ class Event
 
     #[ORM\OneToOne(mappedBy: 'event', targetEntity: EventReport::class, cascade: ['persist', 'remove'])]
     private ?EventReport $report = null;
+
+    #[ORM\Column(type: 'string', enumType: EventStatus::class)]
+    private EventStatus $status = EventStatus::PLANNED;
 
     public function getId(): ?int
     {
@@ -289,12 +293,23 @@ class Event
 
     public function setReport(EventReport $report): static
     {
-        // set the owning side of the relation if necessary
         if ($report->getEvent() !== $this) {
             $report->setEvent($this);
         }
 
         $this->report = $report;
+
+        return $this;
+    }
+
+    public function getStatus(): EventStatus
+    {
+        return $this->status;
+    }
+
+    public function setStatus(EventStatus $status): static
+    {
+        $this->status = $status;
 
         return $this;
     }

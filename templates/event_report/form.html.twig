@@ -37,12 +37,7 @@
                     <div class="col-md-6">{{ form_row(form.volunteersCount) }}</div>
                 </div>
 
-                <h5>Аналитические показатели</h5>
-                <hr class="mt-2">
                 <div class="row g-3 mb-4">
-                    <div class="col-12">{{ form_row(form.resultsAssessment) }}</div>
-                    <div class="col-12">{{ form_row(form.problemsAnalysis) }}</div>
-                    <div class="col-12">{{ form_row(form.recommendations) }}</div>
                     <div class="col-12">{{ form_row(form.publicReportText) }}</div>
                 </div>
 
@@ -93,7 +88,7 @@
     {{ parent() }}
     <script src="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.js"></script>
     <script src="https://unpkg.com/filepond-plugin-file-validate-type/dist/filepond-plugin-file-validate-type.js"></script>
-    <script src="https://unpkg.com/filepond-plugin-file-validate-size/dist/filepond-plugin-file-validate-size.js"></script> {# <-- НОВЫЙ ПЛАГИН #}
+    <script src="https://unpkg.com/filepond-plugin-file-validate-size/dist/filepond-plugin-file-validate-size.js"></script>
     <script src="https://unpkg.com/filepond/dist/filepond.js"></script>
 
     <script>
@@ -126,8 +121,6 @@
                         labelIdle: `Перетащите файлы или <span class="filepond--label-action">Обзор</span> (осталось: ${maxFiles})`,
                         acceptedFileTypes: ['image/png', 'image/jpeg'],
                         maxFiles: maxFiles,
-
-                        // --- НОВЫЕ ОПЦИИ ВАЛИДАЦИИ РАЗМЕРА ---
                         maxFileSize: '5MB',
                         labelMaxFileSizeExceeded: 'Файл слишком большой',
                         labelMaxFileSize: 'Максимальный размер файла: {filesize}',
@@ -175,14 +168,12 @@
                 });
             });
 
-            // Регистрируем все плагины
             FilePond.registerPlugin(
                 FilePondPluginImagePreview,
                 FilePondPluginFileValidateType,
-                FilePondPluginFileValidateSize // <-- РЕГИСТРАЦИЯ НОВОГО ПЛАГИНА
+                FilePondPluginFileValidateSize
             );
 
-            // Первый запуск
             updateFilePondState();
         });
     </script>

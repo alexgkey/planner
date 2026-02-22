@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Event;
+use App\Entity\Enum\EventStatus;
 use App\Form\EventType;
 use App\Repository\EventRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -15,7 +16,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/events')]
 #[IsGranted('ROLE_USER')]
-final class EventController extends AbstractController
+class EventController extends AbstractController
 {
     #[Route(name: 'app_event_index', methods: ['GET'])]
     public function index(EventRepository $eventRepository): Response
@@ -28,7 +29,7 @@ final class EventController extends AbstractController
     }
 
     #[Route('/new', name: 'app_event_new', methods: ['GET', 'POST'])]
-    #[IsGranted('ROLE_DIR')] // <-- ДОБАВЛЕНА ПРОВЕРКА
+    #[IsGranted('ROLE_DIR')]
     public function new(Request $request, EntityManagerInterface $entityManager): Response
     {
         $event = new Event();
@@ -77,6 +78,20 @@ final class EventController extends AbstractController
             'event' => $event,
             'form' => $form,
         ]);
+    }
+
+    #[Route('/{id}/cancel', name: 'app_event_cancel', methods: ['POST'])]
+    public function cancel(Request $request, Event $event, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted('EVENT_CANCEL', $event);
+
+        if ($this->isCsrfTokenValid('cancel'.$event->getId(), $request->getPayload()->getString('_token'))) {
+            $event->setStatus(EventStatus::CANCELLED);
+            $entityManager->flush();
+            $this->addFlash('warning', 'Мероприятие было отменено.');
+        }
+
+        return $this->redirectToRoute('app_event_show', ['id' => $event->getId()]);
     }
 
     #[Route('/{id}', name: 'app_event_delete', methods: ['POST'])]

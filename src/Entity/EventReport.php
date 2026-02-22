@@ -41,8 +41,6 @@ class EventReport
     #[ORM\OneToMany(mappedBy: 'report', targetEntity: Photo::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $photos;
 
-    // ... (остальные свойства)
-
     #[ORM\Column(type: Types::SMALLINT, nullable: true)]
     private ?int $visitorsCount = null;
 
@@ -80,23 +78,12 @@ class EventReport
     private ?int $volunteersCount = null;
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $resultsAssessment = null;
-
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $problemsAnalysis = null;
-
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $recommendations = null;
-
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $publicReportText = null;
 
     public function __construct()
     {
         $this->photos = new ArrayCollection();
     }
-
-    // ... (остальные геттеры и сеттеры)
 
     public function getId(): ?int
     {
@@ -343,42 +330,6 @@ class EventReport
     public function setVolunteersCount(?int $volunteersCount): static
     {
         $this->volunteersCount = $volunteersCount;
-
-        return $this;
-    }
-
-    public function getResultsAssessment(): ?string
-    {
-        return $this->resultsAssessment;
-    }
-
-    public function setResultsAssessment(?string $resultsAssessment): static
-    {
-        $this->resultsAssessment = $resultsAssessment;
-
-        return $this;
-    }
-
-    public function getProblemsAnalysis(): ?string
-    {
-        return $this->problemsAnalysis;
-    }
-
-    public function setProblemsAnalysis(?string $problemsAnalysis): static
-    {
-        $this->problemsAnalysis = $problemsAnalysis;
-
-        return $this;
-    }
-
-    public function getRecommendations(): ?string
-    {
-        return $this->recommendations;
-    }
-
-    public function setRecommendations(?string $recommendations): static
-    {
-        $this->recommendations = $recommendations;
 
         return $this;
     }

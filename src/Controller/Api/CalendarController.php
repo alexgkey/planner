@@ -3,6 +3,7 @@
 namespace App\Controller\Api;
 
 use App\Entity\Event;
+use App\Entity\Enum\EventStatus;
 use App\Repository\EventRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -37,7 +38,8 @@ class CalendarController extends AbstractController
                 'textColor' => '#ffffff',
                 'extendedProps' => [
                     'department' => $department ? $department->getTitle() : null,
-                    'hasReport' => $event->getReport() !== null, // <-- ВОТ ИЗМЕНЕНИЕ
+                    'isCompleted' => $event->getStatus() === EventStatus::COMPLETED, // <-- ИЗМЕНЕНИЕ ЛОГИКИ
+                    'isCancelled' => $event->getStatus() === EventStatus::CANCELLED,
                 ]
             ];
         }

@@ -49,21 +49,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
         eventContent: function(arg) {
             const props = arg.event.extendedProps;
-            const title = arg.event.title;
+            let title = arg.event.title;
 
-            // --- НОВАЯ ЛОГИКА ---
+            let titleClasses = 'fc-event-title';
+            if (props.isCancelled) {
+                titleClasses += ' text-decoration-line-through';
+            }
+
             const departmentHtml = props.department ? `<div style="font-size: 0.75em; color: rgba(255, 255, 255, 0.8);">${props.department}</div>` : '';
-            const reportIconHtml = props.hasReport ? `<i class="bi bi-check-circle-fill" style="font-size: 0.7em; vertical-align: middle; margin-left: 4px;" title="Отчет сдан"></i>` : '';
 
-            const titleHtml = `<div class="fc-event-title">${title}</div>`;
+            // --- ИЗМЕНЕННАЯ ЛОГИКА ---
+            // Добавляем иконку прямо в строку с названием
+            if (props.isCompleted) {
+                title += ` <i class="bi bi-check-circle-fill" style="font-size: 0.8em;" title="Проведено"></i>`;
+            }
+
+            const titleHtml = `<div class="${titleClasses}">${title}</div>`;
 
             if (arg.view.type.startsWith('list')) {
                 const departmentText = props.department ? `<span class="text-muted small ms-2">(${props.department})</span>` : '';
-                const reportIconListHtml = props.hasReport ? `<i class="bi bi-check-circle-fill text-success ms-2" title="Отчет сдан"></i>` : '';
-                return { html: `<div class="fc-event-title">${title}${departmentText}${reportIconListHtml}</div>` };
+                const completedIconListHtml = props.isCompleted ? `<i class="bi bi-check-circle-fill text-success ms-2" title="Проведено"></i>` : '';
+                const cancelledIconListHtml = props.isCancelled ? `<i class="bi bi-x-circle-fill text-danger ms-2" title="Отменено"></i>` : '';
+                // Для списка мы не добавляем иконку в title, а показываем отдельно
+                return { html: `<div class="${titleClasses}">${arg.event.title}${departmentText}${completedIconListHtml}${cancelledIconListHtml}</div>` };
             }
 
-            return { html: departmentHtml + titleHtml + reportIconHtml };
+            // Для сетки возвращаем новую структуру
+            return { html: departmentHtml + titleHtml };
         },
 
         views: {
