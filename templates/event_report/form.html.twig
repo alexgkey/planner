@@ -6,6 +6,11 @@
     {{ parent() }}
     <link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet">
     <link href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css" rel="stylesheet">
+    <style>
+        .custom-file-input .file-input-label {
+            cursor: pointer;
+        }
+    </style>
 {% endblock %}
 
 
@@ -22,14 +27,42 @@
 
                 <h5>Количественные показатели</h5>
                 <hr class="mt-2">
+
+                <div class="mb-3">
+                    <label class="form-label d-block">Тип аудитории</label>
+                    <div class="btn-group w-100" role="group" id="audience-type-switcher">
+                        <button type="button" class="btn btn-outline-primary" data-value="by_age">По возрастным категориям</button>
+                        <button type="button" class="btn btn-outline-primary" data-value="mixed">Смешанная аудитория</button>
+                    </div>
+                    {{ form_widget(form.audienceType) }}
+                </div>
+
+                <div id="audience-by-age-fields">
+                    <div class="row g-3">
+                        <div class="col-md-6" data-sum-source>{{ form_row(form.childrenVisitorsCount) }}</div>
+                        <div class="col-md-6" data-sum-source>{{ form_row(form.youthVisitorsCount) }}</div>
+                        <div class="col-md-6" data-sum-source>{{ form_row(form.adultsVisitorsCount) }}</div>
+                        <div class="col-md-6" data-sum-source>{{ form_row(form.seniorsVisitorsCount) }}</div>
+                    </div>
+                    <div class="mt-3 p-3 bg-light rounded text-center">
+                        <span class="text-muted">Посетители/просмотры:</span>
+                        <strong id="visitors-count-display" class="fs-4">0</strong>
+                        <span class="text-muted">(чел.)</span>
+                        <div style="display: none;">{{ form_widget(form.visitorsCount) }}</div>
+                    </div>
+                </div>
+
+                <div id="audience-mixed-fields">
+                    <div class="row g-3">
+                        <div class="col-md-6">{{ form_row(form.mixedAudienceCount) }}</div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
                 <div class="row g-3 mb-4">
-                    <div class="col-md-6">{{ form_row(form.visitorsCount) }}</div>
                     <div class="col-md-6">{{ form_row(form.participantsCount) }}</div>
                     <div class="col-md-6">{{ form_row(form.disabledVisitorsCount) }}</div>
-                    <div class="col-md-6">{{ form_row(form.seniorsVisitorsCount) }}</div>
-                    <div class="col-md-6">{{ form_row(form.adultsVisitorsCount) }}</div>
-                    <div class="col-md-6">{{ form_row(form.youthVisitorsCount) }}</div>
-                    <div class="col-md-6">{{ form_row(form.childrenVisitorsCount) }}</div>
                     <div class="col-md-6">{{ form_row(form.childrenAtRiskCount) }}</div>
                     <div class="col-md-6">{{ form_row(form.smoParticipantsCount) }}</div>
                     <div class="col-md-6">{{ form_row(form.smoFamiliesCount) }}</div>
@@ -39,6 +72,30 @@
 
                 <div class="row g-3 mb-4">
                     <div class="col-12">{{ form_row(form.publicReportText) }}</div>
+
+                    <div class="col-12">
+                        <label class="form-label">Сценарий (файл)</label>
+                        <div class="custom-file-input">
+                            <div id="scenario-display-block" class="d-flex align-items-center" {% if not form.vars.data.scenarioName %}style="display: none !important;"{% endif %}>
+                                <a href="{{ path('app_report_download_scenario', {'id': event.id, 'report_id': form.vars.data.id}) }}" class="fw-bold">{{ form.vars.data.originalScenarioName ?: form.vars.data.scenarioName }}</a>
+                                <button type="button" id="delete-scenario-btn" class="btn btn-sm btn-outline-danger ms-3"><i class="bi bi-trash"></i> Удалить</button>
+                            </div>
+
+                            <div id="scenario-upload-block" {% if form.vars.data.scenarioName %}style="display: none;"{% endif %}>
+                                <label for="{{ form.scenarioFile['file'].vars.id }}" class="btn btn-outline-primary file-input-label">
+                                    <i class="bi bi-upload"></i> Выбрать файл...
+                                </label>
+                                <span id="scenario-filename-display" class="ms-2 text-muted"></span>
+                            </div>
+
+                            <div class="d-none">
+                                {{ form_widget(form.scenarioFile['file']) }}
+                                {% if form.scenarioFile['delete'] is defined %}
+                                    {{ form_widget(form.scenarioFile['delete']) }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <h5>Фотографии</h5>
@@ -93,7 +150,105 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const maxPhotosTotal = {{ max_photos }};
+            // --- ЛОГИКА ДЛЯ КАСТОМНОГО ПОЛЯ СЦЕНАРИЯ ---
+            const scenarioFileInput = document.getElementById('{{ form.scenarioFile["file"].vars.id }}');
+            const scenarioDisplayBlock = document.getElementById('scenario-display-block');
+            const scenarioUploadBlock = document.getElementById('scenario-upload-block');
+            const filenameDisplay = document.getElementById('scenario-filename-display');
+
+            scenarioFileInput.addEventListener('change', function() {
+                if (this.files && this.files.length > 0) {
+                    filenameDisplay.textContent = this.files[0].name;
+                } else {
+                    filenameDisplay.textContent = '';
+                }
+            });
+
+            {% if form.scenarioFile['delete'] is defined %}
+                const scenarioDeleteCheckbox = document.getElementById('{{ form.scenarioFile["delete"].vars.id }}');
+                const deleteScenarioBtn = document.getElementById('delete-scenario-btn');
+
+                if (deleteScenarioBtn && scenarioDeleteCheckbox) {
+                    deleteScenarioBtn.addEventListener('click', function() {
+                        scenarioDeleteCheckbox.checked = true;
+                        scenarioDisplayBlock.style.display = 'none';
+                        scenarioUploadBlock.style.display = 'block';
+                        scenarioFileInput.value = '';
+                        filenameDisplay.textContent = '';
+                    });
+                }
+            {% endif %}
+
+            // --- ЛОГИКА ПЕРЕКЛЮЧАТЕЛЯ ТИПА АУДИТОРИИ ---
+            const switcher = document.getElementById('audience-type-switcher');
+            const switcherButtons = switcher.querySelectorAll('button');
+            const audienceTypeRadios = document.querySelectorAll('input[name="event_report[audienceType]"]');
+            const byAgeFields = document.getElementById('audience-by-age-fields');
+            const mixedFields = document.getElementById('audience-mixed-fields');
+
+            function updateSwitcherState() {
+                const selectedValue = document.querySelector('input[name="event_report[audienceType]"]:checked').value;
+                switcherButtons.forEach(button => {
+                    if (button.dataset.value === selectedValue) {
+                        button.classList.add('active', 'btn-primary');
+                        button.classList.remove('btn-outline-primary');
+                    } else {
+                        button.classList.remove('active', 'btn-primary');
+                        button.classList.add('btn-outline-primary');
+                    }
+                });
+            }
+
+            function toggleAudienceFields() {
+                const selectedValue = document.querySelector('input[name="event_report[audienceType]"]:checked').value;
+                if (selectedValue === 'by_age') {
+                    byAgeFields.style.display = 'block';
+                    mixedFields.style.display = 'none';
+                } else {
+                    byAgeFields.style.display = 'none';
+                    mixedFields.style.display = 'block';
+                    calculateSum();
+                }
+            }
+
+            switcherButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const value = this.dataset.value;
+                    const targetRadio = document.querySelector(`input[name="event_report[audienceType]"][value="${value}"]`);
+                    if (targetRadio) {
+                        targetRadio.checked = true;
+                        targetRadio.dispatchEvent(new Event('change'));
+                    }
+                });
+            });
+
+            audienceTypeRadios.forEach(radio => {
+                radio.addEventListener('change', () => {
+                    toggleAudienceFields();
+                    updateSwitcherState();
+                });
+            });
+
+            // --- ЛОГИКА АВТОСУММЫ ---
+            const visitorsCountInput = document.getElementById('event_report_visitorsCount');
+            const visitorsCountDisplay = document.getElementById('visitors-count-display');
+            const sumSourceInputs = document.querySelectorAll('#audience-by-age-fields [data-sum-source] input');
+
+            function calculateSum() {
+                let total = 0;
+                sumSourceInputs.forEach(input => {
+                    total += parseInt(input.value) || 0;
+                });
+                visitorsCountInput.value = total;
+                visitorsCountDisplay.innerText = total;
+            }
+
+            sumSourceInputs.forEach(input => {
+                input.addEventListener('input', calculateSum);
+            });
+
+            // --- ЛОГИКА FILEPOND ---
+            const maxPhotosTotal = {{ max_photos|default(3) }};
             const newPhotosBlock = document.getElementById('new-photos-block');
             const hiddenInput = document.querySelector('#event_report_photos');
             let pond = null;
@@ -174,6 +329,10 @@
                 FilePondPluginFileValidateSize
             );
 
+            // --- ИНИЦИАЛИЗАЦИЯ ---
+            updateSwitcherState();
+            toggleAudienceFields();
+            calculateSum();
             updateFilePondState();
         });
     </script>

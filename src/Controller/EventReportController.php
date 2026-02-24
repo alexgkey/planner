@@ -10,8 +10,10 @@ use App\Form\EventReportType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\String\Slugger\SluggerInterface;
@@ -73,7 +75,7 @@ class EventReportController extends AbstractController
             $event->setStatus(EventStatus::COMPLETED);
 
             $entityManager->persist($report);
-            $entityManager->persist($event); // <-- ЯВНО УКАЗЫВАЕМ DOCTRINE НА ИЗМЕНЕНИЯ В EVENT
+            $entityManager->persist($event);
             $entityManager->flush();
 
             $this->addFlash('success', 'Отчет успешно сохранен! Статус мероприятия обновлен на "Проведено".');
@@ -86,5 +88,27 @@ class EventReportController extends AbstractController
             'form' => $form->createView(),
             'max_photos' => self::MAX_PHOTOS,
         ]);
+    }
+
+    #[Route('/{report_id}/download-scenario', name: 'app_report_download_scenario', methods: ['GET'])]
+    public function downloadScenario(int $report_id, EntityManagerInterface $entityManager, string $kernelProjectDir): Response
+    {
+        $report = $entityManager->getRepository(EventReport::class)->find($report_id);
+
+        if (!$report || !$report->getScenarioName()) {
+            throw $this->createNotFoundException('Файл не найден.');
+        }
+
+        $this->denyAccessUnlessGranted('EVENT_ADD_REPORT', $report->getEvent());
+
+        $filePath = $kernelProjectDir . '/public/uploads/scenarios/' . $report->getScenarioName();
+
+        $response = new BinaryFileResponse($filePath);
+        $response->setContentDisposition(
+            ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+            $report->getOriginalScenarioName() ?: $report->getScenarioName()
+        );
+
+        return $response;
     }
 }

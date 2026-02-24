@@ -7,15 +7,28 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\HttpFoundation\File\File;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Vich\UploaderBundle\Mapping\Annotation as Vich;
 
 #[ORM\Entity(repositoryClass: EventReportRepository::class)]
 #[ORM\HasLifecycleCallbacks]
+#[Vich\Uploadable]
 class EventReport
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
+
+    #[Vich\UploadableField(mapping: 'report_scenarios', fileNameProperty: 'scenarioName')]
+    private ?File $scenarioFile = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $scenarioName = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $originalScenarioName = null;
 
     #[ORM\OneToOne(inversedBy: 'report', targetEntity: Event::class)]
     #[ORM\JoinColumn(nullable: false)]
@@ -63,6 +76,9 @@ class EventReport
     private ?int $childrenVisitorsCount = null;
 
     #[ORM\Column(type: Types::SMALLINT, nullable: true)]
+    private ?int $mixedAudienceCount = null;
+
+    #[ORM\Column(type: Types::SMALLINT, nullable: true)]
     private ?int $childrenAtRiskCount = null;
 
     #[ORM\Column(type: Types::SMALLINT, nullable: true)]
@@ -85,9 +101,57 @@ class EventReport
         $this->photos = new ArrayCollection();
     }
 
+    #[ORM\PrePersist]
+    #[ORM\PreUpdate]
+    public function calculateVisitorsCount(): void
+    {
+        $total = 0;
+        $total += $this->getSeniorsVisitorsCount() ?? 0;
+        $total += $this->getAdultsVisitorsCount() ?? 0;
+        $total += $this->getYouthVisitorsCount() ?? 0;
+        $total += $this->getChildrenVisitorsCount() ?? 0;
+        $this->setVisitorsCount($total > 0 ? $total : null);
+    }
+
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function setScenarioFile(?File $scenarioFile = null): void
+    {
+        $this->scenarioFile = $scenarioFile;
+        if (null !== $scenarioFile) {
+            $this->updatedAt = new \DateTimeImmutable();
+            if ($scenarioFile instanceof UploadedFile) {
+                $this->originalScenarioName = $scenarioFile->getClientOriginalName();
+            }
+        }
+    }
+
+    public function getScenarioFile(): ?File
+    {
+        return $this->scenarioFile;
+    }
+
+    public function setScenarioName(?string $scenarioName): void
+    {
+        $this->scenarioName = $scenarioName;
+    }
+
+    public function getScenarioName(): ?string
+    {
+        return $this->scenarioName;
+    }
+
+    public function getOriginalScenarioName(): ?string
+    {
+        return $this->originalScenarioName;
+    }
+
+    public function setOriginalScenarioName(?string $originalScenarioName): void
+    {
+        $this->originalScenarioName = $originalScenarioName;
     }
 
     public function getEvent(): ?Event
@@ -181,7 +245,6 @@ class EventReport
     public function removePhoto(Photo $photo): static
     {
         if ($this->photos->removeElement($photo)) {
-            // set the owning side to null (unless already changed)
             if ($photo->getReport() === $this) {
                 $photo->setReport(null);
             }
@@ -270,6 +333,18 @@ class EventReport
     public function setChildrenVisitorsCount(?int $childrenVisitorsCount): static
     {
         $this->childrenVisitorsCount = $childrenVisitorsCount;
+
+        return $this;
+    }
+
+    public function getMixedAudienceCount(): ?int
+    {
+        return $this->mixedAudienceCount;
+    }
+
+    public function setMixedAudienceCount(?int $mixedAudienceCount): static
+    {
+        $this->mixedAudienceCount = $mixedAudienceCount;
 
         return $this;
     }

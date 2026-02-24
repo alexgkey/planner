@@ -41,14 +41,16 @@
             {% if event.report.adultsVisitorsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. взрослые</dt><dd class="col-sm-8">{{ event.report.adultsVisitorsCount }} чел.</dd>{% endif %}
             {% if event.report.youthVisitorsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. молодежь</dt><dd class="col-sm-8">{{ event.report.youthVisitorsCount }} чел.</dd>{% endif %}
             {% if event.report.childrenVisitorsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. дети</dt><dd class="col-sm-8">{{ event.report.childrenVisitorsCount }} чел.</dd>{% endif %}
+            {% if event.report.mixedAudienceCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. смешанная</dt><dd class="col-sm-8">{{ event.report.mixedAudienceCount }} чел.</dd>{% endif %}
             {% if event.report.childrenAtRiskCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. дети на учете</dt><dd class="col-sm-8">{{ event.report.childrenAtRiskCount }} чел.</dd>{% endif %}
             {% if event.report.smoParticipantsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. участники СВО</dt><dd class="col-sm-8">{{ event.report.smoParticipantsCount }} чел.</dd>{% endif %}
             {% if event.report.smoFamiliesCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. семьи СВО</dt><dd class="col-sm-8">{{ event.report.smoFamiliesCount }} чел.</dd>{% endif %}
             {% if event.report.youngFamiliesCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. молодые семьи</dt><dd class="col-sm-8">{{ event.report.youngFamiliesCount }} чел.</dd>{% endif %}
             {% if event.report.volunteersCount is not null %}<dt class="col-sm-4 text-muted">Волонтеры</dt><dd class="col-sm-8">{{ event.report.volunteersCount }} чел.</dd>{% endif %}
 
-            {# Текстовые поля #}
+            {# Текстовые поля и файлы #}
             {% if event.report.publicReportText %}<dt class="col-sm-4 text-muted">Текст для Госпабликов</dt><dd class="col-sm-8"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.report.publicReportText }}</p></dd>{% endif %}
+            {% if event.report.scenarioName %}<dt class="col-sm-4 text-muted">Сценарий</dt><dd class="col-sm-8"><a href="{{ vich_uploader_asset(event.report, 'scenarioFile') }}" target="_blank">{{ event.report.originalScenarioName ?: event.report.scenarioName }}</a></dd>{% endif %}
         </dl>
 
         {# Фотографии #}

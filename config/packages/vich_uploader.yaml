@@ -8,3 +8,11 @@ vich_uploader:
             inject_on_load: false
             delete_on_update: true
             delete_on_remove: true
+
+        report_scenarios:
+            uri_prefix: /uploads/scenarios
+            upload_destination: '%kernel.project_dir%/public/uploads/scenarios'
+            namer: Vich\UploaderBundle\Naming\UniqidNamer # <-- ИЗМЕНЕНИЕ
+            inject_on_load: false
+            delete_on_update: true
+            delete_on_remove: true
