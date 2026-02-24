@@ -9,8 +9,8 @@
         <dt class="col-sm-4 text-muted">Статус</dt>
         <dd class="col-sm-8">
             {% set badge_color = 'primary' %}
-            {% if event.status == 'cancelled' %}{% set badge_color = 'danger' %}{% endif %}
-            {% if event.status == 'completed' %}{% set badge_color = 'success' %}{% endif %}
+            {% if event.status.value == 'cancelled' %}{% set badge_color = 'danger' %}{% endif %}
+            {% if event.status.value == 'completed' %}{% set badge_color = 'success' %}{% endif %}
             <span class="badge bg-{{ badge_color }}">
                 {{ event.status.getLabel() }}
             </span>
@@ -34,14 +34,14 @@
         <h5 class="mb-3">Отчет о мероприятии</h5>
         <dl class="row gy-3">
             {# Количественные показатели #}
-            {% if event.report.visitorsCount is not null %}<dt class="col-sm-4 text-muted">Посетители/просмотры</dt><dd class="col-sm-8">{{ event.report.visitorsCount }} чел.</dd>{% endif %}
             {% if event.report.participantsCount is not null %}<dt class="col-sm-4 text-muted">Участники</dt><dd class="col-sm-8">{{ event.report.participantsCount }} чел.</dd>{% endif %}
-            {% if event.report.disabledVisitorsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. инвалиды</dt><dd class="col-sm-8">{{ event.report.disabledVisitorsCount }} чел.</dd>{% endif %}
+            {% if event.report.mixedAudienceCount is not null %}<dt class="col-sm-4 text-muted">Смешанная аудитория</dt><dd class="col-sm-8">{{ event.report.mixedAudienceCount }} чел.</dd>{% endif %}
+            {% if event.report.visitorsCount is not null %}<dt class="col-sm-4 text-muted">Посетители/просмотры</dt><dd class="col-sm-8">{{ event.report.visitorsCount }} чел.</dd>{% endif %}
             {% if event.report.seniorsVisitorsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. пенсионеры</dt><dd class="col-sm-8">{{ event.report.seniorsVisitorsCount }} чел.</dd>{% endif %}
             {% if event.report.adultsVisitorsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. взрослые</dt><dd class="col-sm-8">{{ event.report.adultsVisitorsCount }} чел.</dd>{% endif %}
             {% if event.report.youthVisitorsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. молодежь</dt><dd class="col-sm-8">{{ event.report.youthVisitorsCount }} чел.</dd>{% endif %}
             {% if event.report.childrenVisitorsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. дети</dt><dd class="col-sm-8">{{ event.report.childrenVisitorsCount }} чел.</dd>{% endif %}
-            {% if event.report.mixedAudienceCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. смешанная</dt><dd class="col-sm-8">{{ event.report.mixedAudienceCount }} чел.</dd>{% endif %}
+            {% if event.report.disabledVisitorsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. инвалиды</dt><dd class="col-sm-8">{{ event.report.disabledVisitorsCount }} чел.</dd>{% endif %}
             {% if event.report.childrenAtRiskCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. дети на учете</dt><dd class="col-sm-8">{{ event.report.childrenAtRiskCount }} чел.</dd>{% endif %}
             {% if event.report.smoParticipantsCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. участники СВО</dt><dd class="col-sm-8">{{ event.report.smoParticipantsCount }} чел.</dd>{% endif %}
             {% if event.report.smoFamiliesCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. семьи СВО</dt><dd class="col-sm-8">{{ event.report.smoFamiliesCount }} чел.</dd>{% endif %}
@@ -50,7 +50,7 @@
 
             {# Текстовые поля и файлы #}
             {% if event.report.publicReportText %}<dt class="col-sm-4 text-muted">Текст для Госпабликов</dt><dd class="col-sm-8"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.report.publicReportText }}</p></dd>{% endif %}
-            {% if event.report.scenarioName %}<dt class="col-sm-4 text-muted">Сценарий</dt><dd class="col-sm-8"><a href="{{ vich_uploader_asset(event.report, 'scenarioFile') }}" target="_blank">{{ event.report.originalScenarioName ?: event.report.scenarioName }}</a></dd>{% endif %}
+            {% if event.report.scenarioName %}<dt class="col-sm-4 text-muted">Сценарий</dt><dd class="col-sm-8"><a href="{{ path('app_report_download_scenario', {'id': event.id, 'report_id': event.report.id}) }}" target="_blank">{{ event.report.originalScenarioName ?: event.report.scenarioName }}</a></dd>{% endif %}
         </dl>
 
         {# Фотографии #}
