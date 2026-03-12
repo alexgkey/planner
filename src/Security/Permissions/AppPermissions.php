@@ -1,0 +1,31 @@
+<?php
+
+namespace App\Security\Permissions;
+
+final class AppPermissions
+{
+    public const EVENT_VIEW = 'ROLE_EVENT_VIEW';
+    public const EVENT_VIEW_ANY = 'ROLE_EVENT_VIEW_ANY';
+    public const EVENT_MANAGE_OWN = 'ROLE_EVENT_MANAGE_OWN';
+    public const EVENT_MANAGE_ANY = 'ROLE_EVENT_MANAGE_ANY';
+    public const EVENT_ADMIN = 'ROLE_EVENT_ADMIN';
+
+    public const DEPARTMENT_VIEW = 'ROLE_DEPARTMENT_VIEW';
+    public const DEPARTMENT_MANAGE_OWN = 'ROLE_DEPARTMENT_MANAGE_OWN';
+    public const DEPARTMENT_MANAGE_ANY = 'ROLE_DEPARTMENT_MANAGE_ANY';
+    public const DEPARTMENT_ADMIN = 'ROLE_DEPARTMENT_ADMIN';
+
+    public const USER_VIEW = 'ROLE_USER_VIEW';
+    public const USER_MANAGE_OWN = 'ROLE_USER_MANAGE_OWN';
+    public const USER_VIEW_ALL = 'ROLE_USER_VIEW_ALL';
+    public const USER_MANAGE_ALL = 'ROLE_USER_MANAGE_ALL';
+    public const USER_ADMIN = 'ROLE_USER_ADMIN';
+
+    public const EMPLOYEE_VIEW = 'ROLE_EMPLOYEE_VIEW';
+    public const EMPLOYEE_VIEW_DEPARTMENT = 'ROLE_EMPLOYEE_VIEW_DEPARTMENT';
+    public const EMPLOYEE_VIEW_ANY = 'ROLE_EMPLOYEE_VIEW_ANY';
+    public const EMPLOYEE_MANAGE_OWN = 'ROLE_EMPLOYEE_MANAGE_OWN';
+    public const EMPLOYEE_MANAGE_DEPARTMENT = 'ROLE_EMPLOYEE_MANAGE_DEPARTMENT';
+    public const EMPLOYEE_MANAGE_ANY = 'ROLE_EMPLOYEE_MANAGE_ANY';
+    public const EMPLOYEE_ADMIN = 'ROLE_EMPLOYEE_ADMIN';
+}

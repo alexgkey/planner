@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Новый сотрудник{% endblock %}
+
+{% block body %}
+<div class="container py-5" style="max-width: 800px;">
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h1 class="mb-0 h3">Новый сотрудник</h1>
+            <a href="{{ path('app_employee_index') }}" class="btn btn-sm btn-outline-secondary">Назад к списку</a>
+        </div>
+        <div class="card-body">
+            {{ include('employee/_form.html.twig') }}
+        </div>
+    </div>
+</div>
+{% endblock %}

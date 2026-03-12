@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Form\UserType;
 use App\Repository\UserRepository;
+use App\Security\Permissions\AppPermissions;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,20 +15,35 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/users')]
-#[IsGranted('ROLE_DIR')] // Минимальная роль для доступа к этому контроллеру
+#[IsGranted(AppPermissions::USER_VIEW)]
 class UserController extends AbstractController
 {
     public function __construct(
-        private UserPasswordHasherInterface $passwordHasher
+        private readonly UserPasswordHasherInterface $passwordHasher
     ) {
     }
 
     #[Route(name: 'app_user_index', methods: ['GET'])]
     public function index(UserRepository $userRepository): Response
     {
-        $this->denyAccessUnlessGranted('ROLE_DIR');
         $currentUser = $this->getUser();
-        $users = $userRepository->findVisibleFor($currentUser);
+        $users = [];
+
+        if ($this->isGranted(AppPermissions::USER_ADMIN)) {
+            // Админ видит всех
+            $users = $userRepository->findAll();
+        } elseif ($this->isGranted(AppPermissions::USER_VIEW_ALL)) {
+            // Пользователь с правом VIEW_ALL видит всех в своем отделе
+            $department = $currentUser->getEmployee()?->getDepartment();
+            if ($department) {
+                $users = $userRepository->findByDepartment($department);
+            } else {
+                $users = [$currentUser]; // Если у самого нет отдела, видит только себя
+            }
+        } elseif ($this->isGranted(AppPermissions::USER_VIEW)) {
+            // Пользователь с базовым правом видит только себя
+            $users = [$currentUser];
+        }
 
         return $this->render('user/index.html.twig', [
             'users' => $users,
@@ -35,7 +51,7 @@ class UserController extends AbstractController
     }
 
     #[Route('/new', name: 'app_user_new', methods: ['GET', 'POST'])]
-    #[IsGranted('ROLE_MANAGER')] // Создавать могут только Менеджеры и выше
+    #[IsGranted(AppPermissions::USER_ADMIN)] // Только админ может создавать новых пользователей
     public function new(Request $request, EntityManagerInterface $entityManager): Response
     {
         $user = new User();
@@ -64,7 +80,8 @@ class UserController extends AbstractController
     #[Route('/{id}', name: 'app_user_show', methods: ['GET'])]
     public function show(User $user): Response
     {
-        $this->denyAccessUnlessGranted('view', $user);
+        // Voter проверит, можно ли смотреть этого пользователя
+        $this->denyAccessUnlessGranted(AppPermissions::USER_VIEW, $user);
 
         return $this->render('user/show.html.twig', [
             'user' => $user,
@@ -74,7 +91,14 @@ class UserController extends AbstractController
     #[Route('/{id}/edit', name: 'app_user_edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, User $user, EntityManagerInterface $entityManager): Response
     {
-        $this->denyAccessUnlessGranted('edit', $user);
+        // Voter проверит, можно ли редактировать этого пользователя
+        if ($this->isGranted(AppPermissions::USER_MANAGE_ALL, $user)) {
+            // Редактирование в рамках отдела
+        } elseif ($this->isGranted(AppPermissions::USER_MANAGE_OWN, $user)) {
+            // Редактирование своего профиля
+        } else {
+            $this->denyAccessUnlessGranted(AppPermissions::USER_ADMIN, $user); // Или админ
+        }
 
         $form = $this->createForm(UserType::class, $user);
         $form->handleRequest($request);
@@ -98,10 +122,9 @@ class UserController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_user_delete', methods: ['POST'])]
+    #[IsGranted(AppPermissions::USER_ADMIN)] // Только админ может удалять
     public function delete(Request $request, User $user, EntityManagerInterface $entityManager): Response
     {
-        $this->denyAccessUnlessGranted('delete', $user);
-
         if ($this->isCsrfTokenValid('delete'.$user->getId(), $request->getPayload()->getString('_token'))) {
             $user->setIsActive(false);
             $entityManager->flush();

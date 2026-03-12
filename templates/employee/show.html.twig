@@ -1,0 +1,40 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ employee.fio }}{% endblock %}
+
+{% block body %}
+<div class="container py-5" style="max-width: 800px;">
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h1 class="mb-0 h3">{{ employee.fio }}</h1>
+            <a href="{{ path('app_employee_index') }}" class="btn btn-sm btn-outline-secondary">Назад к списку</a>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-4 text-muted">Ф.И.О.</dt>
+                <dd class="col-sm-8">{{ employee.fio }}</dd>
+
+                <dt class="col-sm-4 text-muted">Отдел</dt>
+                <dd class="col-sm-8">{{ employee.department ? employee.department.title : '—' }}</dd>
+
+                <dt class="col-sm-4 text-muted">Телефон</dt>
+                <dd class="col-sm-8">{{ employee.phone ?: '—' }}</dd>
+
+                <dt class="col-sm-4 text-muted">Аккаунт</dt>
+                <dd class="col-sm-8">{{ employee.userAccount ? employee.userAccount.email : 'Нет' }}</dd>
+
+                <dt class="col-sm-4 text-muted">Статус</dt>
+                <dd class="col-sm-8">{{ employee.isActive ? 'Активен' : 'Неактивен' }}</dd>
+            </dl>
+        </div>
+        <div class="card-footer bg-light d-flex justify-content-end gap-2 flex-wrap">
+            {% if is_granted('EMPLOYEE_EDIT', employee) %}
+                <a href="{{ path('app_employee_edit', {'id': employee.id}) }}" class="btn btn-primary">Редактировать</a>
+            {% endif %}
+            {% if is_granted('EMPLOYEE_DELETE', employee) %}
+                {{ include('employee/_delete_form.html.twig') }}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

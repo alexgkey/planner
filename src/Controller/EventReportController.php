@@ -7,6 +7,7 @@ use App\Entity\EventReport;
 use App\Entity\Enum\EventStatus;
 use App\Entity\Photo;
 use App\Form\EventReportType;
+use App\Security\Voter\EventVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Filesystem\Filesystem;
@@ -15,7 +16,6 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\String\Slugger\SluggerInterface;
 
 #[Route('/event/{id}/report')]
@@ -31,7 +31,7 @@ class EventReportController extends AbstractController
         SluggerInterface $slugger,
         string $kernelProjectDir
     ): Response {
-        $this->denyAccessUnlessGranted('EVENT_ADD_REPORT', $event);
+        $this->denyAccessUnlessGranted(EventVoter::ADD_REPORT, $event);
 
         $report = $event->getReport() ?? new EventReport();
 
@@ -99,7 +99,7 @@ class EventReportController extends AbstractController
             throw $this->createNotFoundException('Файл не найден.');
         }
 
-        $this->denyAccessUnlessGranted('EVENT_ADD_REPORT', $report->getEvent());
+        $this->denyAccessUnlessGranted(EventVoter::ADD_REPORT, $report->getEvent());
 
         $filePath = $kernelProjectDir . '/public/uploads/scenarios/' . $report->getScenarioName();
 

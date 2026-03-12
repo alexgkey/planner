@@ -5,7 +5,7 @@ security:
 
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
-        # used to reload user from session & other features (e.g. switch_user)
+        # Провайдер для загрузки пользователя из базы
         app_user_provider:
             entity:
                 class: App\Entity\User
@@ -13,7 +13,7 @@ security:
 
     firewalls:
         dev:
-            # Ensure dev tools and static assets are always allowed
+            # Профайлер и ассеты всегда доступны без авторизации
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
         main:
@@ -29,42 +29,53 @@ security:
                 path: app_logout
                 target: app_login
 
-            # configure the maximum login attempts
             login_throttling:
-                max_attempts: 3          # per minute ...
-                interval: '5 minutes' # ... or in a custom period
+                max_attempts: 3
+                interval: '5 minutes'
 
             remember_me:
                 secret: '%kernel.secret%'
-                lifetime: 604800 # 1 week in seconds
-                # always_remember_me: true
+                lifetime: 604800
                 signature_properties: ['password', 'updatedAt']
 
-
-            # Activate different ways to authenticate:
-            # https://symfony.com/doc/current/security.html#the-firewall
-
-            # https://symfony.com/doc/current/security/impersonating_user.html
-            # switch_user: true
-
-    # Note: Only the *first* matching rule is applied
-    access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
+    access_decision_manager:
+        strategy: unanimous
 
     role_hierarchy:
-        ROLE_CALENDAR_VIEWER: ROLE_USER
-        ROLE_DIR: ROLE_USER
-        ROLE_MANAGER: [ROLE_DIR, ROLE_CALENDAR_VIEWER]
-        ROLE_ADMIN: ROLE_MANAGER
+        # Мероприятия
+        ROLE_EVENT_VIEW_ANY: [ROLE_EVENT_VIEW]
+        ROLE_EVENT_MANAGE_OWN: [ROLE_EVENT_VIEW]
+        ROLE_EVENT_MANAGE_ANY: [ROLE_EVENT_MANAGE_OWN, ROLE_EVENT_VIEW_ANY]
+        ROLE_EVENT_ADMIN: [ROLE_EVENT_MANAGE_ANY]
+
+        # Подразделения
+        ROLE_DEPARTMENT_MANAGE_OWN: [ROLE_DEPARTMENT_VIEW]
+        ROLE_DEPARTMENT_MANAGE_ANY: [ROLE_DEPARTMENT_MANAGE_OWN]
+        ROLE_DEPARTMENT_ADMIN: [ROLE_DEPARTMENT_MANAGE_ANY]
+
+        # Пользователи
+        ROLE_USER_MANAGE_OWN: [ROLE_USER_VIEW]
+        ROLE_USER_VIEW_ALL: [ROLE_USER_VIEW]
+        ROLE_USER_MANAGE_ALL: [ROLE_USER_MANAGE_OWN, ROLE_USER_VIEW_ALL]
+        ROLE_USER_ADMIN: [ROLE_USER_MANAGE_ALL]
+
+        # Сотрудники
+        ROLE_EMPLOYEE_MANAGE_OWN: [ROLE_EMPLOYEE_VIEW]
+        ROLE_EMPLOYEE_VIEW_DEPARTMENT: [ROLE_EMPLOYEE_VIEW]
+        ROLE_EMPLOYEE_VIEW_ANY: [ROLE_EMPLOYEE_VIEW_DEPARTMENT]
+        ROLE_EMPLOYEE_MANAGE_DEPARTMENT: [ROLE_EMPLOYEE_VIEW_DEPARTMENT]
+        ROLE_EMPLOYEE_MANAGE_ANY: [ROLE_EMPLOYEE_MANAGE_DEPARTMENT, ROLE_EMPLOYEE_VIEW_ANY]
+        ROLE_EMPLOYEE_ADMIN: [ROLE_EMPLOYEE_MANAGE_ANY]
+
+    access_control:
+        - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/, roles: ROLE_USER }
 
 when@test:
     security:
         password_hashers:
-            # Password hashers are resource-intensive by design to ensure security.
-            # In tests, it's safe to reduce their cost to improve performance.
             Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
                 algorithm: auto
-                cost: 4 # Lowest possible value for bcrypt
-                time_cost: 3 # Lowest possible value for argon
-                memory_cost: 10 # Lowest possible value for argon
+                cost: 4
+                time_cost: 3
+                memory_cost: 10

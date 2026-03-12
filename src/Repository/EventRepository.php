@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\Department;
 use App\Entity\Event;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -16,29 +17,24 @@ class EventRepository extends ServiceEntityRepository
         parent::__construct($registry, Event::class);
     }
 
-        /**
-         * @return Event[] Returns an array of Event objects
-         */
-        public function findActiveByDepartment($department): array
-        {
-            return $this->createQueryBuilder('e')
-                ->andWhere('e.isActive = :active')
-                ->setParameter('active', true)
+    /**
+     * @return Event[]
+     */
+    public function findActiveByDepartment(?Department $department = null): array
+    {
+        $queryBuilder = $this->createQueryBuilder('e')
+            ->andWhere('e.isActive = :active')
+            ->setParameter('active', true)
+            ->orderBy('e.date', 'ASC');
+
+        if (null !== $department) {
+            $queryBuilder
                 ->andWhere('e.department = :department')
-                ->setParameter('department', $department)
-                ->orderBy('e.date', 'ASC')
-                ->getQuery()
-                ->getResult()
-            ;
+                ->setParameter('department', $department);
         }
 
-    //    public function findOneBySomeField($value): ?Event
-    //    {
-    //        return $this->createQueryBuilder('e')
-    //            ->andWhere('e.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        return $queryBuilder
+            ->getQuery()
+            ->getResult();
+    }
 }

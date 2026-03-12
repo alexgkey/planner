@@ -2,15 +2,23 @@
 
 namespace App\Repository;
 
+use App\Entity\Department;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
-use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
 
 /**
  * @extends ServiceEntityRepository<User>
+ *
+ * @method User|null find($id, $lockMode = null, $lockVersion = null)
+ * @method User|null findOneBy(array $criteria, array $orderBy = null)
+ * @method User[]    findAll()
+ * @method User[]    findBy(array $criteria, array $orderBy = null, $limit = null, $offset = null)
  */
-class UserRepository extends ServiceEntityRepository
+class UserRepository extends ServiceEntityRepository implements PasswordUpgraderInterface
 {
     public function __construct(ManagerRegistry $registry)
     {
@@ -18,39 +26,32 @@ class UserRepository extends ServiceEntityRepository
     }
 
     /**
-     * Находит пользователей, которых может видеть текущий пользователь.
+     * Used to upgrade (rehash) the user's password automatically over time.
      */
-    public function findVisibleFor(UserInterface $currentUser): array
+    public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
     {
-        $qb = $this->createQueryBuilder('u');
-
-        // Администратор видит всех
-        if (in_array('ROLE_ADMIN', $currentUser->getRoles())) {
-            // Никаких ограничений
-        }
-        // Менеджер видит Директоров и обычных пользователей
-        elseif (in_array('ROLE_MANAGER', $currentUser->getRoles())) {
-            $qb->andWhere('NOT u.roles LIKE :role_admin')
-               ->andWhere('NOT u.roles LIKE :role_manager')
-               ->setParameter('role_admin', '%"ROLE_ADMIN"%')
-               ->setParameter('role_manager', '%"ROLE_MANAGER"%');
-        }
-        // Директор видит только обычных пользователей
-        elseif (in_array('ROLE_DIR', $currentUser->getRoles())) {
-            $qb->andWhere('u.roles = :empty_roles')
-               ->setParameter('empty_roles', '[]');
-        }
-        // Обычный пользователь не видит никого
-        else {
-            $qb->andWhere('1 = 0'); // Не возвращать ничего
+        if (!$user instanceof User) {
+            throw new UnsupportedUserException(sprintf('Instances of "%s" are not supported.', $user::class));
         }
 
-        // Всегда исключаем самого себя из списка
-        $qb->andWhere('u.id != :current_user_id')
-           ->setParameter('current_user_id', $currentUser->getId());
-        // Исключаем неактивных
-        $qb->andWhere('u.isActive != false');
+        $user->setPassword($newHashedPassword);
+        $this->getEntityManager()->persist($user);
+        $this->getEntityManager()->flush();
+    }
 
-        return $qb->getQuery()->getResult();
+    /**
+     * Находит всех пользователей, принадлежащих к определенному отделу.
+     * @return User[]
+     */
+    public function findByDepartment(Department $department): array
+    {
+        return $this->createQueryBuilder('u')
+            ->innerJoin('u.employee', 'e')
+            ->andWhere('e.department = :department')
+            ->setParameter('department', $department)
+            ->orderBy('e.fio', 'ASC')
+            ->getQuery()
+            ->getResult()
+        ;
     }
 }

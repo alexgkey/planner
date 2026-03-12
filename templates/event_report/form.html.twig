@@ -13,7 +13,6 @@
     </style>
 {% endblock %}
 
-
 {% block body %}
 <div class="min-vh-100 d-flex align-items-center justify-content-center py-5">
     <div class="container" style="max-width: 900px;">
@@ -77,7 +76,12 @@
                         <label class="form-label">Сценарий (файл)</label>
                         <div class="custom-file-input">
                             <div id="scenario-display-block" class="d-flex align-items-center" {% if not form.vars.data.scenarioName %}style="display: none !important;"{% endif %}>
-                                <a href="{{ path('app_report_download_scenario', {'id': event.id, 'report_id': form.vars.data.id}) }}" class="fw-bold">{{ form.vars.data.originalScenarioName ?: form.vars.data.scenarioName }}</a>
+                                {% set report_id = form.vars.data.id|default(null) %}
+                                {% if report_id is not empty %}
+                                    <a href="{{ path('app_report_download_scenario', {'id': event.id, 'report_id': report_id}) }}" class="fw-bold">{{ form.vars.data.originalScenarioName ?: form.vars.data.scenarioName }}</a>
+                                {% else %}
+                                    <span class="fw-bold">{{ form.vars.data.originalScenarioName ?: form.vars.data.scenarioName }}</span>
+                                {% endif %}
                                 <button type="button" id="delete-scenario-btn" class="btn btn-sm btn-outline-danger ms-3"><i class="bi bi-trash"></i> Удалить</button>
                             </div>
 
@@ -150,7 +154,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // --- ЛОГИКА ДЛЯ КАСТОМНОГО ПОЛЯ СЦЕНАРИЯ ---
+            // Логика кастомного поля сценария.
             const scenarioFileInput = document.getElementById('{{ form.scenarioFile["file"].vars.id }}');
             const scenarioDisplayBlock = document.getElementById('scenario-display-block');
             const scenarioUploadBlock = document.getElementById('scenario-upload-block');
@@ -179,7 +183,7 @@
                 }
             {% endif %}
 
-            // --- ЛОГИКА ПЕРЕКЛЮЧАТЕЛЯ ТИПА АУДИТОРИИ ---
+            // Переключатель типа аудитории.
             const switcher = document.getElementById('audience-type-switcher');
             const switcherButtons = switcher.querySelectorAll('button');
             const audienceTypeRadios = document.querySelectorAll('input[name="event_report[audienceType]"]');
@@ -229,7 +233,7 @@
                 });
             });
 
-            // --- ЛОГИКА АВТОСУММЫ ---
+            // Автосумма посетителей.
             const visitorsCountInput = document.getElementById('event_report_visitorsCount');
             const visitorsCountDisplay = document.getElementById('visitors-count-display');
             const sumSourceInputs = document.querySelectorAll('#audience-by-age-fields [data-sum-source] input');
@@ -247,7 +251,7 @@
                 input.addEventListener('input', calculateSum);
             });
 
-            // --- ЛОГИКА FILEPOND ---
+            // Загрузка фотографий через FilePond.
             const maxPhotosTotal = {{ max_photos|default(3) }};
             const newPhotosBlock = document.getElementById('new-photos-block');
             const hiddenInput = document.querySelector('#event_report_photos');
@@ -314,7 +318,7 @@
                             if (response.ok) {
                                 photoContainer.remove();
                                 const countSpan = document.getElementById('existing-photos-count');
-                                if(countSpan) countSpan.innerText = document.querySelectorAll('#existing-photos-container [data-photo-id]').length;
+                                if (countSpan) countSpan.innerText = document.querySelectorAll('#existing-photos-container [data-photo-id]').length;
                                 updateFilePondState();
                             } else {
                                 alert('Не удалось удалить фото.');
@@ -329,7 +333,7 @@
                 FilePondPluginFileValidateSize
             );
 
-            // --- ИНИЦИАЛИЗАЦИЯ ---
+            // Инициализация страницы.
             updateSwitcherState();
             toggleAudienceFields();
             calculateSum();

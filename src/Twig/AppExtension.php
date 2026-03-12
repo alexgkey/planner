@@ -2,23 +2,18 @@
 
 namespace App\Twig;
 
+use App\Security\Permissions\AppPermissions;
 use Twig\Extension\AbstractExtension;
-use Twig\TwigFilter;
+use Twig\Extension\GlobalsInterface;
 
-class AppExtension extends AbstractExtension
+class AppExtension extends AbstractExtension implements GlobalsInterface
 {
-    public function getFilters(): array
+    public function getGlobals(): array
     {
+        // Делаем AppPermissions доступным во всех Twig-шаблонах
+        // как глобальную переменную Permissions.
         return [
-            new TwigFilter('flip', [$this, 'flipArray']),
+            'Permissions' => new AppPermissions(),
         ];
-    }
-
-    public function flipArray($array): array
-    {
-        if (!is_array($array)) {
-            return [];
-        }
-        return array_flip($array);
     }
 }

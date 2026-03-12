@@ -20,32 +20,33 @@
                     <dd class="col-sm-9">{{ user.email }}</dd>
 
                     <dt class="col-sm-3 text-muted">ФИО</dt>
-                    <dd class="col-sm-9">{{ user.fio }}</dd>
+                    <dd class="col-sm-9">{{ user.employee.fio }}</dd>
 
                     <dt class="col-sm-3 text-muted">Телефон</dt>
-                    <dd class="col-sm-9">{{ user.phone }}</dd>
+                    <dd class="col-sm-9">{{ user.employee.phone }}</dd>
 
                     <dt class="col-sm-3 text-muted">Отдел</dt>
-                    <dd class="col-sm-9">{{ user.department ? user.department.title : 'Не указан' }}</dd>
+                    <dd class="col-sm-9">{{ user.employee.department ? user.employee.department.title : 'Не указан' }}</dd>
 
-                    <dt class="col-sm-3 text-muted">Роли</dt>
-                    <dd class="col-sm-9">{# --- НАЧАЛО БЛОКА ОТОБРАЖЕНИЯ РОЛЕЙ --- #}
-                        {% set role_names = user_roles|flip %}
-
-                        {% set displayed_roles = [] %}
-                        {% for role in user.roles %}
-                            {% if role_names[role] is defined %}
-                                {% set displayed_roles = displayed_roles|merge([role_names[role]]) %}
+                    {% if is_granted(Permissions.USER_ADMIN) %}
+                        <dt class="col-sm-3 text-muted">Разрешения</dt>
+                        <dd class="col-sm-9">
+                            {% if user.permissions|length > 0 %}
+                                {{ user.permissions|join(', ') }}
+                            {% else %}
+                                <span class="text-muted">Нет специальных разрешений</span>
                             {% endif %}
-                        {% endfor %}
-
-                        {{ displayed_roles|join(', ') }}
-                        {# --- КОНЕЦ БЛОКА ОТОБРАЖЕНИЯ РОЛЕЙ --- #}</dd>
+                        </dd>
+                    {% endif %}
                 </dl>
             </div>
             <div class="card-footer bg-light d-flex justify-content-end gap-2">
-                <a href="{{ path('app_user_edit', {'id': user.id}) }}" class="btn btn-primary">Редактировать</a>
-                {{ include('user/_delete_form.html.twig') }}
+                {% if is_granted(Permissions.USER_MANAGE_ALL, user) or is_granted(Permissions.USER_MANAGE_OWN, user) %}
+                    <a href="{{ path('app_user_edit', {'id': user.id}) }}" class="btn btn-primary">Редактировать</a>
+                {% endif %}
+                {% if is_granted(Permissions.USER_ADMIN) %}
+                    {{ include('user/_delete_form.html.twig') }}
+                {% endif %}
             </div>
         </div>
     </div>

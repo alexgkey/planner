@@ -6,15 +6,14 @@ use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
-use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
-#[UniqueEntity('email')]
+#[ORM\Table(name: '`user`')]
 #[ORM\HasLifecycleCallbacks]
+#[UniqueEntity(fields: ['email'], message: 'There is already an account with this email')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
@@ -22,45 +21,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 180)]
-    #[Assert\Email]
-    protected ?string $email = null;
+    #[ORM\Column(length: 180, unique: true)]
+    private ?string $email = null;
 
-    /**
-     * @var list<string> The user roles
-     */
     #[ORM\Column]
-    private array $roles = [];
+    private array $permissions = [];
 
-    /**
-     * @var string The hashed password
-     */
     #[ORM\Column]
     private ?string $password = null;
 
-    #[ORM\Column(nullable: true)]
+    #[ORM\Column]
+    private ?bool $isActive = true;
+
+    #[ORM\Column]
     private ?\DateTimeImmutable $createAt = null;
 
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $updatedAt = null;
 
-    #[ORM\ManyToOne(inversedBy: 'users')]
-    private ?Department $department = null;
-
-    #[ORM\Column]
-    private ?bool $isActive = True;
+    #[ORM\OneToOne(inversedBy: 'userAccount', cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Employee $employee = null;
 
     /**
      * @var Collection<int, Event>
      */
     #[ORM\OneToMany(targetEntity: Event::class, mappedBy: 'creator')]
     private Collection $events;
-
-    #[ORM\Column(length: 255)]
-    private ?string $fio = null;
-
-    #[ORM\Column(length: 255)]
-    private ?string $phone = null;
 
     public function __construct()
     {
@@ -84,43 +71,37 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * A visual identifier that represents this user.
-     *
-     * @see UserInterface
-     */
     public function getUserIdentifier(): string
     {
         return (string) $this->email;
     }
 
     /**
-     * @see UserInterface
+     * Для системы безопасности Symfony, "роли" и "разрешения" - это одно и то же.
+     * Этот метод должен возвращать все, что мы хотим проверять через is_granted().
      */
     public function getRoles(): array
     {
-        $roles = $this->roles;
-        // guarantee every user at least has ROLE_USER
+        $roles = $this->permissions;
+        // Гарантируем, что у каждого пользователя есть базовая роль
         $roles[] = 'ROLE_USER';
 
         return array_unique($roles);
     }
 
-    /**
-     * @param list<string> $roles
-     */
-    public function setRoles(array $roles): static
+    public function getPermissions(): array
     {
-        // Re-index the array to ensure it's a simple JSON array, not an object.
-        $this->roles = array_values($roles);
+        return $this->permissions;
+    }
+
+    public function setPermissions(array $permissions): static
+    {
+        $this->permissions = $permissions;
 
         return $this;
     }
 
-    /**
-     * @see PasswordAuthenticatedUserInterface
-     */
-    public function getPassword(): ?string
+    public function getPassword(): string
     {
         return $this->password;
     }
@@ -128,6 +109,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPassword(string $password): static
     {
         $this->password = $password;
+
+        return $this;
+    }
+
+    public function eraseCredentials(): void
+    {
+        // If you store any temporary, sensitive data on the user, clear it here
+    }
+
+    public function isActive(): ?bool
+    {
+        return $this->isActive;
+    }
+
+    public function setIsActive(bool $isActive): static
+    {
+        $this->isActive = $isActive;
 
         return $this;
     }
@@ -154,44 +152,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->updatedAt = new \DateTimeImmutable();
     }
 
-    /**
-     * Ensure the session doesn't contain actual password hashes by CRC32C-hashing them, as supported since Symfony 7.3.
-     */
-    public function __serialize(): array
+    public function getEmployee(): ?Employee
     {
-        $data = (array) $this;
-        $data["\0".self::class."\0password"] = hash('crc32c', $this->password);
-
-        return $data;
+        return $this->employee;
     }
 
-    public function getDepartment(): ?Department
+    public function setEmployee(Employee $employee): static
     {
-        return $this->department;
-    }
-
-    public function setDepartment(?Department $department): static
-    {
-        $this->department = $department;
+        $this->employee = $employee;
 
         return $this;
     }
 
-    public function isActive(): ?bool
-    {
-        return $this->isActive;
-    }
-
-    public function setIsActive(bool $isActive): static
-    {
-        $this->isActive = $isActive;
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Event>
-     */
     public function getEvents(): Collection
     {
         return $this->events;
@@ -210,35 +182,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function removeEvent(Event $event): static
     {
         if ($this->events->removeElement($event)) {
-            // set the owning side to null (unless already changed)
             if ($event->getCreator() === $this) {
                 $event->setCreator(null);
             }
         }
-
-        return $this;
-    }
-
-    public function getFio(): ?string
-    {
-        return $this->fio;
-    }
-
-    public function setFio(string $fio): static
-    {
-        $this->fio = $fio;
-
-        return $this;
-    }
-
-    public function getPhone(): ?string
-    {
-        return $this->phone;
-    }
-
-    public function setPhone(string $phone): static
-    {
-        $this->phone = $phone;
 
         return $this;
     }

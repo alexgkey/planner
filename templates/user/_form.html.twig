@@ -1,23 +1,21 @@
 {{ form_start(form) }}
     <div class="row g-3">
         <div class="col-12">
-            {{ form_row(form.fio) }}
+            {{ form_row(form.employee) }}
         </div>
         <div class="col-md-6">
             {{ form_row(form.email) }}
         </div>
         <div class="col-md-6">
-            {{ form_row(form.phone) }}
-        </div>
-        <div class="col-12">
-            {{ form_row(form.department) }}
-        </div>
-        <div class="col-12">
-            {{ form_row(form.roles) }}
-        </div>
-        <div class="col-12">
             {{ form_row(form.password) }}
         </div>
+
+        {# Поле с разрешениями показываем только если оно добавлено в форме. #}
+        {% if form.permissions is defined %}
+            <div class="col-12 mt-3">
+                {{ form_row(form.permissions) }}
+            </div>
+        {% endif %}
     </div>
 
     <div class="d-flex justify-content-end gap-2 mt-4">

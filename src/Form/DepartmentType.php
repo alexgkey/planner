@@ -14,16 +14,15 @@ class DepartmentType extends AbstractType
     {
         $builder
             ->add('title', null, [
-                'label' => 'Название отдела'
+                'label' => 'Название отдела',
             ])
             ->add('address', null, [
-                'label' => 'Адрес'
+                'label' => 'Адрес',
             ])
             ->add('color', ColorType::class, [
                 'label' => 'Цвет для календаря',
                 'required' => false,
-            ])
-        ;
+            ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

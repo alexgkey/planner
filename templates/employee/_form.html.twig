@@ -1,0 +1,24 @@
+{{ form_start(form) }}
+    <div class="row g-3">
+        {% if form.fio is defined %}
+            <div class="col-12">
+                {{ form_row(form.fio) }}
+            </div>
+        {% endif %}
+
+        <div class="col-md-6">
+            {{ form_row(form.phone) }}
+        </div>
+
+        {% if form.department is defined %}
+            <div class="col-md-6">
+                {{ form_row(form.department) }}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-4">
+        <a href="{{ app.request.headers.get('referer') ?: path('app_employee_index') }}" class="btn btn-secondary">Отмена</a>
+        <button class="btn btn-primary">{{ button_label|default('Сохранить') }}</button>
+    </div>
+{{ form_end(form) }}
