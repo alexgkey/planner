@@ -1,64 +1,132 @@
-{% extends 'base.html.twig' %}
+﻿{% extends 'base.html.twig' %}
 
 {% block title %}План мероприятий{% endblock %}
 
 {% block body %}
 <div class="container-fluid py-5 px-lg-5">
-    <div class="d-flex justify-content-between align-items-center mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="mb-0 h2">План мероприятий</h1>
-            {% if app.user and app.user.employee.department %}
+            {% if app.user and app.user.employee.department and not can_filter_events %}
                 <p class="text-muted mb-0">{{ app.user.employee.department.title }}</p>
             {% endif %}
         </div>
-        {% if is_granted('ROLE_EVENT_MANAGE_OWN') %}
+        {% if is_granted(Permissions.EVENT_MANAGE_OWN) %}
             <a href="{{ path('app_event_new') }}" class="btn btn-primary d-flex align-items-center">
                 <i class="bi-plus-lg"></i>
-                <span class="d-none d-sm-inline ms-2">Новое событие</span>
+                <span class="d-none d-sm-inline ms-2">Новое мероприятие</span>
             </a>
         {% endif %}
     </div>
 
-    {% set showDepartmentMeta = is_granted('ROLE_EVENT_VIEW_ANY') or is_granted('ROLE_EVENT_ADMIN') %}
+    <div class="row g-4 align-items-start">
+        {% if can_filter_events %}
+            <div class="col-12 d-xl-none">
+                <button
+                    class="btn btn-outline-secondary w-100 d-flex justify-content-between align-items-center"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#event-filters-collapse"
+                    aria-expanded="false"
+                    aria-controls="event-filters-collapse"
+                >
+                    <span>Фильтры мероприятий</span>
+                    <i class="bi bi-sliders"></i>
+                </button>
+            </div>
 
-    {# События без даты #}
-    {% set noDateEvents = events|filter(e => e.date is null) %}
-    {% if noDateEvents is not empty %}
-        <h4 class="text-muted mb-3">Без даты</h4>
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-3 mb-5">
-            {% for event in noDateEvents %}
-                <div class="col">{{ block('event_card') }}</div>
-            {% endfor %}
-        </div>
-    {% endif %}
+            <aside class="col-12 col-xl-3 col-xxl-2">
+                <div class="collapse d-xl-block" id="event-filters-collapse">
+                    <div class="card shadow-sm sticky-xl-top" style="top: 1.5rem;">
+                        <div class="card-body p-3">
+                            <div class="mb-3">
+                                <h2 class="h6 mb-1">Фильтры</h2>
+                                <p class="text-muted small mb-0">Выберите нужные месяцы и отделы.</p>
+                            </div>
 
-    {# События с датой, сгруппированные по месяцам #}
-    {% set datedEvents = events|filter(e => e.date is not null)|sort((a, b) => a.date <=> b.date) %}
-    {% set currentMonth = null %}
+                            <form method="get" action="{{ path('app_event_index') }}" id="event-filters-form">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                                        <h3 class="small text-uppercase text-muted fw-semibold mb-0">Месяцы</h3>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-select-group="months">Все</button>
+                                    </div>
+                                    <div class="d-grid gap-1">
+                                        {% for month_value, month_label in month_options %}
+                                            <label class="form-check border rounded px-2 py-1 small w-100 bg-white">
+                                                <input class="form-check-input me-2" type="checkbox" name="months[]" value="{{ month_value }}" {% if month_value in selected_months %}checked{% endif %}>
+                                                <span class="form-check-label">{{ ((month_value ~ '-01')|date('Y-m-d'))|format_datetime(locale='ru', pattern='LLLL yyyy')|capitalize }}</span>
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
 
-    {% for event in datedEvents %}
-        {% set month = event.date|format_datetime(locale='ru', pattern='LLLL yyyy')|capitalize %}
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                                        <h3 class="small text-uppercase text-muted fw-semibold mb-0">Отделы</h3>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-select-group="departments">Все</button>
+                                    </div>
+                                    <div class="d-grid gap-1">
+                                        {% for department in department_options %}
+                                            <label class="form-check border rounded px-2 py-1 small w-100 bg-white">
+                                                <input class="form-check-input me-2" type="checkbox" name="departments[]" value="{{ department.id }}" {% if department.id in selected_department_ids %}checked{% endif %}>
+                                                <span class="form-check-label">{{ department.title }}</span>
+                                            </label>
+                                        {% endfor %}
+                                    </div>
+                                </div>
 
-        {% if month != currentMonth %}
-            {% if not loop.first %}</div>{% endif %}
-            <h4 class="text-muted mb-3 {% if noDateEvents is not empty or currentMonth is not null %}mt-4{% endif %}">{{ month }}</h4>
-            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-3">
-            {% set currentMonth = month %}
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-sm btn-primary">Применить</button>
+                                    <a href="{{ path('app_event_index') }}" class="btn btn-sm btn-outline-secondary" id="event-filters-reset">Сбросить</a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </aside>
         {% endif %}
 
-        <div class="col">{{ block('event_card') }}</div>
+        <div class="col-12 {{ can_filter_events ? 'col-xl-9 col-xxl-10' : 'col-xl-12' }}">
+            {% set showDepartmentMeta = can_filter_events %}
 
-        {% if loop.last %}</div>{% endif %}
-    {% endfor %}
+            {% set noDateEvents = events|filter(e => e.date is null) %}
+            {% if noDateEvents is not empty %}
+                <h4 class="text-muted mb-3">Без даты</h4>
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-xxl-3 g-3 mb-5">
+                    {% for event in noDateEvents %}
+                        <div class="col">{{ block('event_card') }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
 
-    {% if events is empty %}
-        <div class="text-center text-muted py-5">
-            <p class="fs-4">Пока нет запланированных событий.</p>
-            {% if is_granted('ROLE_EVENT_MANAGE_OWN') %}
-                <p>Начните с создания нового события.</p>
+            {% set datedEvents = events|filter(e => e.date is not null)|sort((a, b) => a.date <=> b.date) %}
+            {% set currentMonth = null %}
+
+            {% for event in datedEvents %}
+                {% set month = event.date|format_datetime(locale='ru', pattern='LLLL yyyy')|capitalize %}
+
+                {% if month != currentMonth %}
+                    {% if not loop.first %}</div>{% endif %}
+                    <h4 class="text-muted mb-3 {% if noDateEvents is not empty or currentMonth is not null %}mt-4{% endif %}">{{ month }}</h4>
+                    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 row-cols-xxl-3 g-3">
+                    {% set currentMonth = month %}
+                {% endif %}
+
+                <div class="col">{{ block('event_card') }}</div>
+
+                {% if loop.last %}</div>{% endif %}
+            {% endfor %}
+
+            {% if events is empty %}
+                <div class="text-center text-muted py-5 px-lg-5 bg-light rounded-4 border">
+                    <p class="fs-4 mb-2">По выбранным фильтрам мероприятий не найдено.</p>
+                    {% if is_granted(Permissions.EVENT_MANAGE_OWN) %}
+                        <p class="mb-0">Попробуйте изменить фильтры или создайте новое мероприятие.</p>
+                    {% endif %}
+                </div>
             {% endif %}
         </div>
-    {% endif %}
+    </div>
 </div>
 {% endblock %}
 
@@ -115,4 +183,64 @@
         </div>
     </div>
 </a>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {% if can_filter_events %}
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const storageKey = 'planner-event-filters-v1';
+                const form = document.getElementById('event-filters-form');
+                const resetLink = document.getElementById('event-filters-reset');
+
+                if (!form) {
+                    return;
+                }
+
+                const url = new URL(window.location.href);
+                const hasFilterParams = url.searchParams.has('months[]') || url.searchParams.has('departments[]');
+
+                if (!hasFilterParams) {
+                    const saved = localStorage.getItem(storageKey);
+                    if (saved) {
+                        try {
+                            const parsed = JSON.parse(saved);
+                            const redirectUrl = new URL(window.location.href);
+                            (parsed.months || []).forEach(month => redirectUrl.searchParams.append('months[]', month));
+                            (parsed.departments || []).forEach(department => redirectUrl.searchParams.append('departments[]', department));
+
+                            if (redirectUrl.search) {
+                                window.location.replace(redirectUrl.toString());
+                                return;
+                            }
+                        } catch (error) {
+                            localStorage.removeItem(storageKey);
+                        }
+                    }
+                }
+
+                form.addEventListener('submit', function () {
+                    const payload = {
+                        months: Array.from(form.querySelectorAll('input[name="months[]"]:checked')).map(input => input.value),
+                        departments: Array.from(form.querySelectorAll('input[name="departments[]"]:checked')).map(input => input.value),
+                    };
+                    localStorage.setItem(storageKey, JSON.stringify(payload));
+                });
+
+                resetLink.addEventListener('click', function () {
+                    localStorage.removeItem(storageKey);
+                });
+
+                document.querySelectorAll('[data-select-group]').forEach(button => {
+                    button.addEventListener('click', function () {
+                        const group = this.dataset.selectGroup;
+                        form.querySelectorAll(`input[name="${group}[]"]`).forEach(input => {
+                            input.checked = true;
+                        });
+                    });
+                });
+            });
+        </script>
+    {% endif %}
 {% endblock %}
