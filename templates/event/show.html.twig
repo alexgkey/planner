@@ -16,10 +16,10 @@
 
         <div class="card shadow-lg border-0 {{ status_class }}">
             <div class="card-header bg-light py-3">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
                     <h3 class="mb-0 {% if is_cancelled %}text-decoration-line-through text-muted{% endif %}">{{ event.title }}</h3>
                     <a href="{{ path('app_event_index') }}" class="btn btn-sm btn-outline-secondary">
-                        РќР°Р·Р°Рґ Рє СЃРїРёСЃРєСѓ
+                        Назад к списку
                     </a>
                 </div>
             </div>
@@ -32,7 +32,7 @@
                 {% endfor %}
 
                 <dl class="row gy-3">
-                    <dt class="col-sm-4 col-md-3 text-muted">РЎС‚Р°С‚СѓСЃ</dt>
+                    <dt class="col-sm-4 col-md-3 text-muted">Статус</dt>
                     <dd class="col-sm-8 col-md-9">
                         {% set badge_color = 'primary' %}
                         {% if is_cancelled %}{% set badge_color = 'danger' %}{% endif %}
@@ -42,44 +42,44 @@
                         </span>
                     </dd>
 
-                    {% if event.date %}<dt class="col-sm-4 col-md-3 text-muted">Р”Р°С‚Р° РїСЂРѕРІРµРґРµРЅРёСЏ</dt><dd class="col-sm-8 col-md-9">{{ event.date|date('d.m.Y') }}</dd>{% endif %}
-                    {% if event.venue %}<dt class="col-sm-4 col-md-3 text-muted">РњРµСЃС‚Рѕ РїСЂРѕРІРµРґРµРЅРёСЏ</dt><dd class="col-sm-8 col-md-9">{{ event.venue }}</dd>{% endif %}
-                    {% if event.onOffLine %}<dt class="col-sm-4 col-md-3 text-muted">Р¤РѕСЂРјР°С‚</dt><dd class="col-sm-8 col-md-9">{{ event.onOffLine.getLabel() }}</dd>{% endif %}
-                    {% if event.eventLevel %}<dt class="col-sm-4 col-md-3 text-muted">РЈСЂРѕРІРµРЅСЊ</dt><dd class="col-sm-8 col-md-9">{{ event.eventLevel.getLabel() }}</dd>{% endif %}
-                    {% if event.eventDirection %}<dt class="col-sm-4 col-md-3 text-muted">РќР°РїСЂР°РІР»РµРЅРёРµ</dt><dd class="col-sm-8 col-md-9">{{ event.eventDirection.getLabel() }}</dd>{% endif %}
-                    {% if event.targetAudience %}<dt class="col-sm-4 col-md-3 text-muted">Р¦РµР»РµРІР°СЏ Р°СѓРґРёС‚РѕСЂРёСЏ</dt><dd class="col-sm-8 col-md-9">{{ event.targetAudience.getLabel() }}</dd>{% endif %}
-                    {% if event.eventAccessibility %}<dt class="col-sm-4 col-md-3 text-muted">Р”РѕСЃС‚СѓРїРЅРѕСЃС‚СЊ</dt><dd class="col-sm-8 col-md-9">{{ event.eventAccessibility.getLabel() }}</dd>{% endif %}
-                    {% if event.interaction %}<dt class="col-sm-4 col-md-3 text-muted">Р’Р·Р°РёРјРѕРґРµР№СЃС‚РІРёРµ</dt><dd class="col-sm-8 col-md-9">{{ event.interaction }}</dd>{% endif %}
-                    {% if event.responsible %}<dt class="col-sm-4 col-md-3 text-muted">РћС‚РІРµС‚СЃС‚РІРµРЅРЅС‹Р№</dt><dd class="col-sm-8 col-md-9">{{ event.responsible }}</dd>{% endif %}
-                    {% if event.plannedVisitors %}<dt class="col-sm-4 col-md-3 text-muted">РџРѕСЃРµС‚РёС‚РµР»Рё (РїР»Р°РЅ)</dt><dd class="col-sm-8 col-md-9">{{ event.plannedVisitors }}</dd>{% endif %}
-                    {% if event.note %}<dt class="col-sm-4 col-md-3 text-muted">РџСЂРёРјРµС‡Р°РЅРёРµ</dt><dd class="col-sm-8 col-md-9"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.note }}</p></dd>{% endif %}
+                    {% if event.date %}<dt class="col-sm-4 col-md-3 text-muted">Дата проведения</dt><dd class="col-sm-8 col-md-9">{{ event.date|date('d.m.Y') }}</dd>{% endif %}
+                    {% if event.venue %}<dt class="col-sm-4 col-md-3 text-muted">Место проведения</dt><dd class="col-sm-8 col-md-9">{{ event.venue }}</dd>{% endif %}
+                    {% if event.onOffLine %}<dt class="col-sm-4 col-md-3 text-muted">Формат</dt><dd class="col-sm-8 col-md-9">{{ event.onOffLine.getLabel() }}</dd>{% endif %}
+                    {% if event.eventLevel %}<dt class="col-sm-4 col-md-3 text-muted">Уровень</dt><dd class="col-sm-8 col-md-9">{{ event.eventLevel.getLabel() }}</dd>{% endif %}
+                    {% if event.eventDirection %}<dt class="col-sm-4 col-md-3 text-muted">Направление</dt><dd class="col-sm-8 col-md-9">{{ event.eventDirection.getLabel() }}</dd>{% endif %}
+                    {% if event.targetAudience %}<dt class="col-sm-4 col-md-3 text-muted">Целевая аудитория</dt><dd class="col-sm-8 col-md-9">{{ event.targetAudience.getLabel() }}</dd>{% endif %}
+                    {% if event.eventAccessibility %}<dt class="col-sm-4 col-md-3 text-muted">Доступность</dt><dd class="col-sm-8 col-md-9">{{ event.eventAccessibility.getLabel() }}</dd>{% endif %}
+                    {% if event.interaction %}<dt class="col-sm-4 col-md-3 text-muted">Взаимодействие</dt><dd class="col-sm-8 col-md-9">{{ event.interaction }}</dd>{% endif %}
+                    {% if event.responsible %}<dt class="col-sm-4 col-md-3 text-muted">Ответственный</dt><dd class="col-sm-8 col-md-9">{{ event.responsible }}</dd>{% endif %}
+                    {% if event.plannedVisitors %}<dt class="col-sm-4 col-md-3 text-muted">Посетители (план)</dt><dd class="col-sm-8 col-md-9">{{ event.plannedVisitors }}</dd>{% endif %}
+                    {% if event.note %}<dt class="col-sm-4 col-md-3 text-muted">Примечание</dt><dd class="col-sm-8 col-md-9"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.note }}</p></dd>{% endif %}
                 </dl>
             </div>
             <div class="card-footer bg-light d-flex justify-content-end gap-2 flex-wrap">
                 {% if is_cancelled %}
                     {% if is_granted(Permissions.EVENT_ADMIN) %}
-                        <form method="post" action="{{ path('app_event_restore', {'id': event.id}) }}" onsubmit="return confirm('Р’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ РІРѕСЃСЃС‚Р°РЅРѕРІРёС‚СЊ СЌС‚Рѕ РјРµСЂРѕРїСЂРёСЏС‚РёРµ?');">
+                        <form method="post" action="{{ path('app_event_restore', {'id': event.id}) }}" onsubmit="return confirm('Вы уверены, что хотите восстановить это мероприятие?');">
                             <input type="hidden" name="_token" value="{{ csrf_token('restore' ~ event.id) }}">
-                            <button class="btn btn-success">Р’РѕСЃСЃС‚Р°РЅРѕРІРёС‚СЊ РјРµСЂРѕРїСЂРёСЏС‚РёРµ</button>
+                            <button class="btn btn-success">Восстановить мероприятие</button>
                         </form>
                     {% endif %}
                 {% else %}
                     {% if is_granted('EVENT_CANCEL', event) %}
-                        <form method="post" action="{{ path('app_event_cancel', {'id': event.id}) }}" onsubmit="return confirm('Р’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ РѕС‚РјРµРЅРёС‚СЊ СЌС‚Рѕ РјРµСЂРѕРїСЂРёСЏС‚РёРµ?');">
+                        <form method="post" action="{{ path('app_event_cancel', {'id': event.id}) }}" onsubmit="return confirm('Вы уверены, что хотите отменить это мероприятие?');">
                             <input type="hidden" name="_token" value="{{ csrf_token('cancel' ~ event.id) }}">
-                            <button class="btn btn-warning">РћС‚РјРµРЅРёС‚СЊ РјРµСЂРѕРїСЂРёСЏС‚РёРµ</button>
+                            <button class="btn btn-warning">Отменить мероприятие</button>
                         </form>
                     {% endif %}
                 {% endif %}
 
                 {% if is_granted('EVENT_ADD_REPORT', event) %}
                     <a href="{{ path('app_event_report', {'id': event.id}) }}" class="btn btn-success">
-                        {% if event.report %}Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ РѕС‚С‡РµС‚{% else %}Р—Р°РїРѕР»РЅРёС‚СЊ РѕС‚С‡РµС‚{% endif %}
+                        {% if event.report %}Редактировать отчет{% else %}Заполнить отчет{% endif %}
                     </a>
                 {% endif %}
 
                 {% if is_granted('EVENT_EDIT', event) %}
-                    <a href="{{ path('app_event_edit', {'id': event.id}) }}" class="btn btn-primary">Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ</a>
+                    <a href="{{ path('app_event_edit', {'id': event.id}) }}" class="btn btn-primary">Редактировать</a>
                     {{ include('event/_delete_form.html.twig') }}
                 {% endif %}
             </div>
