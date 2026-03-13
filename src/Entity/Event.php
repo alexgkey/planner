@@ -5,8 +5,8 @@ namespace App\Entity;
 use App\Entity\Enum\EventAccessibility;
 use App\Entity\Enum\EventDirection;
 use App\Entity\Enum\EventLevel;
-use App\Entity\Enum\OnOffLine;
 use App\Entity\Enum\EventStatus;
+use App\Entity\Enum\OnOffLine;
 use App\Entity\Enum\TargetAudience;
 use App\Repository\EventRepository;
 use Doctrine\DBAL\Types\Types;
@@ -22,7 +22,10 @@ class Event
     private ?int $id = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
-    private ?\DateTime $date = null;
+    private ?\DateTimeInterface $date = null;
+
+    #[ORM\Column(name: 'event_time', type: Types::TIME_MUTABLE, nullable: true)]
+    private ?\DateTimeInterface $time = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $venue = null;
@@ -84,16 +87,45 @@ class Event
         return $this->id;
     }
 
-    public function getDate(): ?\DateTime
+    public function getDate(): ?\DateTimeInterface
     {
         return $this->date;
     }
 
-    public function setDate(?\DateTime $date): static
+    public function setDate(?\DateTimeInterface $date): static
     {
         $this->date = $date;
 
         return $this;
+    }
+
+    public function getTime(): ?\DateTimeInterface
+    {
+        return $this->time;
+    }
+
+    public function setTime(?\DateTimeInterface $time): static
+    {
+        $this->time = $time;
+
+        return $this;
+    }
+
+    public function getStartsAt(): ?\DateTimeImmutable
+    {
+        if (null === $this->date) {
+            return null;
+        }
+
+        $dateTime = \DateTimeImmutable::createFromInterface($this->date)->setTime(0, 0);
+        if (null === $this->time) {
+            return $dateTime;
+        }
+
+        return $dateTime->setTime(
+            (int) $this->time->format('H'),
+            (int) $this->time->format('i')
+        );
     }
 
     public function getVenue(): ?string

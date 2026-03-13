@@ -22,25 +22,29 @@ class CalendarController extends AbstractController
         $data = [];
 
         foreach ($events as $event) {
-            if (!$event->getDate()) {
+            $startsAt = $event->getStartsAt();
+            if (null === $startsAt) {
                 continue;
             }
 
             $department = $event->getDepartment();
             $color = $department ? $department->getColor() : '#3788d8';
+            $hasTime = null !== $event->getTime();
 
             $data[] = [
                 'id' => $event->getId(),
                 'title' => $event->getTitle(),
-                'start' => $event->getDate()->format('Y-m-d'),
+                'start' => $hasTime ? $startsAt->format('Y-m-d\TH:i:s') : $startsAt->format('Y-m-d'),
+                'allDay' => !$hasTime,
                 'backgroundColor' => $color,
                 'borderColor' => $color,
                 'textColor' => '#ffffff',
+                'url' => $urlGenerator->generate('app_event_show', ['id' => $event->getId()]),
                 'extendedProps' => [
                     'department' => $department ? $department->getTitle() : null,
-                    'isCompleted' => $event->getStatus() === EventStatus::COMPLETED, // <-- ИЗМЕНЕНИЕ ЛОГИКИ
+                    'isCompleted' => $event->getStatus() === EventStatus::COMPLETED,
                     'isCancelled' => $event->getStatus() === EventStatus::CANCELLED,
-                ]
+                ],
             ];
         }
 
@@ -52,7 +56,7 @@ class CalendarController extends AbstractController
     public function eventDetails(Event $event): JsonResponse
     {
         $html = $this->renderView('event/_modal_content.html.twig', [
-            'event' => $event
+            'event' => $event,
         ]);
 
         return new JsonResponse(['html' => $html]);

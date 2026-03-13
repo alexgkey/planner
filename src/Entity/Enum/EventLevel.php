@@ -5,6 +5,7 @@ namespace App\Entity\Enum;
 enum EventLevel: string
 {
     case MUNICIPAL = 'municipal';
+    case URBAN = 'urban';
     case DISTRICT = 'district';
     case REGIONAL = 'regional';
     case NATIONAL = 'national';
@@ -14,6 +15,7 @@ enum EventLevel: string
     {
         return match ($this) {
             self::MUNICIPAL => 'Муниципальный',
+            self::URBAN => 'Городской',
             self::DISTRICT => 'Окружной',
             self::REGIONAL => 'Региональный',
             self::NATIONAL => 'Всероссийский',

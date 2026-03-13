@@ -14,7 +14,6 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 class EventVoter extends Voter
 {
     // Эти атрибуты оставлены для совместимости с контроллерами и шаблонами.
-    // Внутри voter они сводятся к новой модели прав ROLE_EVENT_*.
     public const EDIT = 'EVENT_EDIT';
     public const ADD_REPORT = 'EVENT_ADD_REPORT';
     public const CANCEL = 'EVENT_CANCEL';
@@ -25,7 +24,6 @@ class EventVoter extends Voter
 
     protected function supports(string $attribute, mixed $subject): bool
     {
-        // Этот voter принимает решения только для сущности Event.
         if (!$subject instanceof Event) {
             return false;
         }
@@ -51,7 +49,6 @@ class EventVoter extends Voter
         /** @var Event $event */
         $event = $subject;
 
-        // EVENT_ADMIN - верхний уровень прав: без ограничений по отделу, дате и статусу.
         if ($this->security->isGranted(AppPermissions::EVENT_ADMIN)) {
             return true;
         }
@@ -68,12 +65,10 @@ class EventVoter extends Voter
 
     private function canView(User $user, Event $event): bool
     {
-        // EVENT_VIEW_ANY разрешает просмотр мероприятий всех отделов.
         if ($this->security->isGranted(AppPermissions::EVENT_VIEW_ANY)) {
             return true;
         }
 
-        // Базовый EVENT_VIEW дает доступ только к своему отделу.
         return $this->isInOwnDepartment($user, $event);
     }
 
@@ -83,8 +78,6 @@ class EventVoter extends Voter
             return false;
         }
 
-        // Управление своим отделом возможно только для мероприятий,
-        // которые еще разрешено изменять, и только внутри своего отдела.
         return $this->isEditableEvent($event) && $this->isInOwnDepartment($user, $event);
     }
 
@@ -94,24 +87,19 @@ class EventVoter extends Voter
             return false;
         }
 
-        // Право на управление всеми мероприятиями снимает ограничение по отделу,
-        // но не отменяет запрет на изменение прошедших мероприятий.
         return $this->isEditableEvent($event);
     }
 
     private function canAddReport(User $user, Event $event): bool
     {
-        // Для отмененного мероприятия отчет недоступен.
         if ($event->getStatus() === EventStatus::CANCELLED) {
             return false;
         }
 
-        // Отчет можно создавать и редактировать только в день мероприятия и после него.
         if (!$this->isReportEditableEvent($event)) {
             return false;
         }
 
-        // По границам доступа отчет повторяет логику управления мероприятием.
         if ($this->security->isGranted(AppPermissions::EVENT_MANAGE_ANY)) {
             return true;
         }
@@ -132,7 +120,6 @@ class EventVoter extends Voter
 
     private function isEditableEvent(Event $event): bool
     {
-        // Изменяемыми считаются только запланированные мероприятия.
         if ($event->getStatus() !== EventStatus::PLANNED) {
             return false;
         }
@@ -142,7 +129,7 @@ class EventVoter extends Voter
             return true;
         }
 
-        // После наступления даты обычные управляющие права больше не позволяют менять мероприятие.
+        // Ограничение остается по календарной дате, а не по часу мероприятия.
         return $eventDate >= new \DateTime('today');
     }
 
@@ -153,6 +140,7 @@ class EventVoter extends Voter
             return false;
         }
 
+        // Отчет, как и раньше, доступен в день мероприятия и позже.
         return $eventDate <= new \DateTime('today');
     }
 }

@@ -37,12 +37,11 @@
                         {% set badge_color = 'primary' %}
                         {% if is_cancelled %}{% set badge_color = 'danger' %}{% endif %}
                         {% if is_completed %}{% set badge_color = 'success' %}{% endif %}
-                        <span class="badge bg-{{ badge_color }}">
-                            {{ event.status.getLabel() }}
-                        </span>
+                        <span class="badge bg-{{ badge_color }}">{{ event.status.getLabel() }}</span>
                     </dd>
 
                     {% if event.date %}<dt class="col-sm-4 col-md-3 text-muted">Дата проведения</dt><dd class="col-sm-8 col-md-9">{{ event.date|date('d.m.Y') }}</dd>{% endif %}
+                    {% if event.time %}<dt class="col-sm-4 col-md-3 text-muted">Время проведения</dt><dd class="col-sm-8 col-md-9">{{ event.time|date('H:i') }}</dd>{% endif %}
                     {% if event.venue %}<dt class="col-sm-4 col-md-3 text-muted">Место проведения</dt><dd class="col-sm-8 col-md-9">{{ event.venue }}</dd>{% endif %}
                     {% if event.onOffLine %}<dt class="col-sm-4 col-md-3 text-muted">Формат</dt><dd class="col-sm-8 col-md-9">{{ event.onOffLine.getLabel() }}</dd>{% endif %}
                     {% if event.eventLevel %}<dt class="col-sm-4 col-md-3 text-muted">Уровень</dt><dd class="col-sm-8 col-md-9">{{ event.eventLevel.getLabel() }}</dd>{% endif %}
@@ -56,6 +55,10 @@
                 </dl>
             </div>
             <div class="card-footer bg-light d-flex justify-content-end gap-2 flex-wrap">
+                {% if can_duplicate %}
+                    <a href="{{ path('app_event_duplicate', {'id': event.id}) }}" class="btn btn-outline-primary">Создать копию</a>
+                {% endif %}
+
                 {% if is_cancelled %}
                     {% if is_granted(Permissions.EVENT_ADMIN) %}
                         <form method="post" action="{{ path('app_event_restore', {'id': event.id}) }}" onsubmit="return confirm('Вы уверены, что хотите восстановить это мероприятие?');">

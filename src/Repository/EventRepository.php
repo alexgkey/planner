@@ -25,7 +25,8 @@ class EventRepository extends ServiceEntityRepository
         $queryBuilder = $this->createQueryBuilder('e')
             ->andWhere('e.isActive = :active')
             ->setParameter('active', true)
-            ->orderBy('e.date', 'ASC');
+            ->orderBy('e.date', 'ASC')
+            ->addOrderBy('e.time', 'ASC');
 
         if (null !== $department) {
             $queryBuilder

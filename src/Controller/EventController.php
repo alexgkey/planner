@@ -87,13 +87,16 @@ class EventController extends AbstractController
     }
 
     #[Route('/new', name: 'app_event_new', methods: ['GET', 'POST'])]
-    #[IsGranted(AppPermissions::EVENT_MANAGE_OWN)]
     public function new(Request $request, EntityManagerInterface $entityManager): Response
     {
+        if (!$this->canDuplicateEvent()) {
+            throw $this->createAccessDeniedException('Недостаточно прав для создания мероприятия.');
+        }
+
         $user = $this->getUser();
         $department = $user?->getEmployee()?->getDepartment();
         if (null === $department) {
-            throw $this->createAccessDeniedException('User department is required to create events.');
+            throw $this->createAccessDeniedException('Для создания мероприятия у пользователя должен быть указан отдел.');
         }
 
         $event = new Event();
@@ -112,6 +115,46 @@ class EventController extends AbstractController
         return $this->render('event/new.html.twig', [
             'event' => $event,
             'form' => $form,
+            'page_title' => 'Новое мероприятие',
+            'page_hint' => null,
+        ]);
+    }
+
+    #[Route('/{id}/duplicate', name: 'app_event_duplicate', methods: ['GET', 'POST'])]
+    public function duplicate(Request $request, Event $sourceEvent, EntityManagerInterface $entityManager): Response
+    {
+        $this->denyAccessUnlessGranted(AppPermissions::EVENT_VIEW, $sourceEvent);
+
+        if (!$this->canDuplicateEvent()) {
+            throw $this->createAccessDeniedException('Недостаточно прав для создания копии мероприятия.');
+        }
+
+        $targetDepartment = $this->resolveDuplicateDepartment($sourceEvent);
+        if (null === $targetDepartment) {
+            throw $this->createAccessDeniedException('Не удалось определить отдел для копии мероприятия.');
+        }
+
+        $event = new Event();
+        $this->copyEventData($sourceEvent, $event);
+        $event->setDepartment($targetDepartment);
+
+        $form = $this->createForm(EventType::class, $event);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $event->setCreator($this->getUser());
+            $event->setDepartment($targetDepartment);
+            $entityManager->persist($event);
+            $entityManager->flush();
+
+            return $this->redirectToRoute('app_event_show', ['id' => $event->getId()]);
+        }
+
+        return $this->render('event/new.html.twig', [
+            'event' => $event,
+            'form' => $form,
+            'page_title' => 'Создание копии мероприятия',
+            'page_hint' => sprintf('Исходное мероприятие: "%s".', $sourceEvent->getTitle()),
         ]);
     }
 
@@ -122,6 +165,7 @@ class EventController extends AbstractController
 
         return $this->render('event/show.html.twig', [
             'event' => $event,
+            'can_duplicate' => $this->canDuplicateEvent(),
         ]);
     }
 
@@ -217,5 +261,40 @@ class EventController extends AbstractController
         }
 
         return $options;
+    }
+
+    private function canDuplicateEvent(): bool
+    {
+        return $this->isGranted(AppPermissions::EVENT_ADMIN)
+            || $this->isGranted(AppPermissions::EVENT_MANAGE_ANY)
+            || $this->isGranted(AppPermissions::EVENT_MANAGE_OWN);
+    }
+
+    private function resolveDuplicateDepartment(Event $sourceEvent): ?Department
+    {
+        if ($this->isGranted(AppPermissions::EVENT_ADMIN) || $this->isGranted(AppPermissions::EVENT_MANAGE_ANY)) {
+            return $sourceEvent->getDepartment() ?? $this->getUser()?->getEmployee()?->getDepartment();
+        }
+
+        return $this->getUser()?->getEmployee()?->getDepartment();
+    }
+
+    private function copyEventData(Event $sourceEvent, Event $targetEvent): void
+    {
+        $targetEvent
+            ->setTitle($sourceEvent->getTitle() ?? '')
+            ->setVenue($sourceEvent->getVenue())
+            ->setEventLevel($sourceEvent->getEventLevel())
+            ->setOnOffLine($sourceEvent->getOnOffLine())
+            ->setEventDirection($sourceEvent->getEventDirection())
+            ->setEventAccessibility($sourceEvent->getEventAccessibility())
+            ->setTargetAudience($sourceEvent->getTargetAudience())
+            ->setInteraction($sourceEvent->getInteraction())
+            ->setResponsible($sourceEvent->getResponsible() ?? '')
+            ->setPlannedVisitors($sourceEvent->getPlannedVisitors())
+            ->setNote($sourceEvent->getNote())
+            ->setTime($sourceEvent->getTime())
+            ->setDate(null)
+            ->setStatus(EventStatus::PLANNED);
     }
 }

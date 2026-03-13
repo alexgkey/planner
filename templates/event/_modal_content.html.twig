@@ -1,21 +1,18 @@
-{# Этот шаблон содержит только внутреннюю часть для модального окна #}
 <div class="modal-header">
     <h5 class="modal-title">{{ event.title }}</h5>
     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 </div>
 <div class="modal-body">
-    {# --- ДАННЫЕ О МЕРОПРИЯТИИ --- #}
     <dl class="row gy-3">
         <dt class="col-sm-4 text-muted">Статус</dt>
         <dd class="col-sm-8">
             {% set badge_color = 'primary' %}
             {% if event.status.value == 'cancelled' %}{% set badge_color = 'danger' %}{% endif %}
             {% if event.status.value == 'completed' %}{% set badge_color = 'success' %}{% endif %}
-            <span class="badge bg-{{ badge_color }}">
-                {{ event.status.getLabel() }}
-            </span>
+            <span class="badge bg-{{ badge_color }}">{{ event.status.getLabel() }}</span>
         </dd>
         {% if event.date %}<dt class="col-sm-4 text-muted">Дата проведения</dt><dd class="col-sm-8">{{ event.date|date('d.m.Y') }}</dd>{% endif %}
+        {% if event.time %}<dt class="col-sm-4 text-muted">Время проведения</dt><dd class="col-sm-8">{{ event.time|date('H:i') }}</dd>{% endif %}
         {% if event.venue %}<dt class="col-sm-4 text-muted">Место проведения</dt><dd class="col-sm-8">{{ event.venue }}</dd>{% endif %}
         {% if event.onOffLine %}<dt class="col-sm-4 text-muted">Формат</dt><dd class="col-sm-8">{{ event.onOffLine.getLabel() }}</dd>{% endif %}
         {% if event.eventLevel %}<dt class="col-sm-4 text-muted">Уровень</dt><dd class="col-sm-8">{{ event.eventLevel.getLabel() }}</dd>{% endif %}
@@ -28,12 +25,10 @@
         {% if event.note %}<dt class="col-sm-4 text-muted">Примечание</dt><dd class="col-sm-8"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.note }}</p></dd>{% endif %}
     </dl>
 
-    {# --- ДАННЫЕ ОТЧЕТА (ЕСЛИ ОН СУЩЕСТВУЕТ) --- #}
     {% if event.report %}
         <hr class="my-4">
         <h5 class="mb-3">Отчет о мероприятии</h5>
         <dl class="row gy-3">
-            {# Количественные показатели #}
             {% if event.report.participantsCount is not null %}<dt class="col-sm-4 text-muted">Участники</dt><dd class="col-sm-8">{{ event.report.participantsCount }} чел.</dd>{% endif %}
             {% if event.report.mixedAudienceCount is not null %}<dt class="col-sm-4 text-muted">Смешанная аудитория</dt><dd class="col-sm-8">{{ event.report.mixedAudienceCount }} чел.</dd>{% endif %}
             {% if event.report.visitorsCount is not null %}<dt class="col-sm-4 text-muted">Посетители/просмотры</dt><dd class="col-sm-8">{{ event.report.visitorsCount }} чел.</dd>{% endif %}
@@ -47,13 +42,10 @@
             {% if event.report.smoFamiliesCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. семьи СВО</dt><dd class="col-sm-8">{{ event.report.smoFamiliesCount }} чел.</dd>{% endif %}
             {% if event.report.youngFamiliesCount is not null %}<dt class="col-sm-4 text-muted">в т.ч. молодые семьи</dt><dd class="col-sm-8">{{ event.report.youngFamiliesCount }} чел.</dd>{% endif %}
             {% if event.report.volunteersCount is not null %}<dt class="col-sm-4 text-muted">Волонтеры</dt><dd class="col-sm-8">{{ event.report.volunteersCount }} чел.</dd>{% endif %}
-
-            {# Текстовые поля и файлы #}
             {% if event.report.publicReportText %}<dt class="col-sm-4 text-muted">Текст для Госпабликов</dt><dd class="col-sm-8"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.report.publicReportText }}</p></dd>{% endif %}
             {% if event.report.scenarioName %}<dt class="col-sm-4 text-muted">Сценарий</dt><dd class="col-sm-8"><a href="{{ path('app_report_download_scenario', {'id': event.id, 'report_id': event.report.id}) }}" target="_blank">{{ event.report.originalScenarioName ?: event.report.scenarioName }}</a></dd>{% endif %}
         </dl>
 
-        {# Фотографии #}
         {% if event.report.photos is not empty %}
             <h6 class="mt-4">Фотографии</h6>
             <div class="row g-2 mt-1">
