@@ -82,6 +82,12 @@ class Event
     #[ORM\Column(type: 'string', enumType: EventStatus::class)]
     private EventStatus $status = EventStatus::PLANNED;
 
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $reportReminderLastSentAt = null;
+
+    #[ORM\Column(type: Types::SMALLINT)]
+    private int $reportReminderSentCount = 0;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -342,6 +348,30 @@ class Event
     public function setStatus(EventStatus $status): static
     {
         $this->status = $status;
+
+        return $this;
+    }
+
+    public function getReportReminderLastSentAt(): ?\DateTimeImmutable
+    {
+        return $this->reportReminderLastSentAt;
+    }
+
+    public function setReportReminderLastSentAt(?\DateTimeImmutable $reportReminderLastSentAt): static
+    {
+        $this->reportReminderLastSentAt = $reportReminderLastSentAt;
+
+        return $this;
+    }
+
+    public function getReportReminderSentCount(): int
+    {
+        return $this->reportReminderSentCount;
+    }
+
+    public function setReportReminderSentCount(int $reportReminderSentCount): static
+    {
+        $this->reportReminderSentCount = $reportReminderSentCount;
 
         return $this;
     }

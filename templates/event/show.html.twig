@@ -52,6 +52,13 @@
                     {% if event.responsible %}<dt class="col-sm-4 col-md-3 text-muted">Ответственный</dt><dd class="col-sm-8 col-md-9">{{ event.responsible }}</dd>{% endif %}
                     {% if event.plannedVisitors %}<dt class="col-sm-4 col-md-3 text-muted">Посетители (план)</dt><dd class="col-sm-8 col-md-9">{{ event.plannedVisitors }}</dd>{% endif %}
                     {% if event.note %}<dt class="col-sm-4 col-md-3 text-muted">Примечание</dt><dd class="col-sm-8 col-md-9"><p style="white-space: pre-wrap; margin-bottom: 0;">{{ event.note }}</p></dd>{% endif %}
+                    {% if is_granted(Permissions.EVENT_ADMIN) and event.report is null and event.reportReminderSentCount > 0 %}
+                        <dt class="col-sm-4 col-md-3 text-muted">Напоминания</dt>
+                        <dd class="col-sm-8 col-md-9">
+                            <div>Отправлено: {{ event.reportReminderSentCount }}</div>
+                            <div>Последнее: {{ event.reportReminderLastSentAt ? event.reportReminderLastSentAt|date('d.m.Y H:i') : 'неизвестно' }}</div>
+                        </dd>
+                    {% endif %}
                 </dl>
             </div>
             <div class="card-footer bg-light d-flex justify-content-end gap-2 flex-wrap">

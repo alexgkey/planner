@@ -169,6 +169,12 @@
                     <small>{{ event.venue }}</small>
                 </p>
             {% endif %}
+            {% if is_granted(Permissions.EVENT_ADMIN) and event.report is null and event.reportReminderSentCount > 0 %}
+                <p class="card-text small text-muted mb-1">
+                    Напоминания: {{ event.reportReminderSentCount }}
+                    <br><span>Последнее: {{ event.reportReminderLastSentAt ? event.reportReminderLastSentAt|date('d.m.Y H:i') : 'неизвестно' }}</span>
+                </p>
+            {% endif %}
             {% if event.note %}
                 <p class="card-text small text-muted" style="font-size: 0.8em; line-height: 1.2;">
                     {{ event.note|slice(0, 80) }}{% if event.note|length > 80 %}...{% endif %}

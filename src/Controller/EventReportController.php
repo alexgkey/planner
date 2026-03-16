@@ -50,6 +50,7 @@ class EventReportController extends AbstractController
                 if ($report->getPhotos()->count() >= self::MAX_PHOTOS) {
                     break;
                 }
+
                 $tempFilePath = $tempPath . $tempId;
                 if ($filesystem->exists($tempFilePath)) {
                     $originalFilename = pathinfo($tempId, PATHINFO_FILENAME);
@@ -73,12 +74,14 @@ class EventReportController extends AbstractController
             }
 
             $event->setStatus(EventStatus::COMPLETED);
+            $event->setReportReminderLastSentAt(null);
+            $event->setReportReminderSentCount(0);
 
             $entityManager->persist($report);
             $entityManager->persist($event);
             $entityManager->flush();
 
-            $this->addFlash('success', 'Отчет успешно сохранен! Статус мероприятия обновлен на "Проведено".');
+            $this->addFlash('success', 'Отчет успешно сохранен. Статус мероприятия обновлен на "Проведено".');
 
             return $this->redirectToRoute('app_event_show', ['id' => $event->getId()]);
         }

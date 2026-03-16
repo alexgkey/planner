@@ -1,0 +1,26 @@
+<div style="font-family: Arial, sans-serif; font-size: 15px; line-height: 1.5; color: #222;">
+    <p>Здравствуйте{% if employee %}, {{ employee.fio }}{% endif %}.</p>
+
+    <p>
+        Напоминаем о необходимости заполнить отчет по мероприятию
+        <strong>{{ event.title }}</strong>.
+    </p>
+
+    <p>
+        {% if event.date %}
+            Дата проведения: <strong>{{ event.date|date('d.m.Y') }}</strong><br>
+        {% endif %}
+        {% if event.time %}
+            Время проведения: <strong>{{ event.time|date('H:i') }}</strong><br>
+        {% endif %}
+        {% if event.department %}
+            Отдел: <strong>{{ event.department.title }}</strong><br>
+        {% endif %}
+        Напоминание {{ reminder_day_number }} из {{ window_days }}.
+    </p>
+
+    <p>
+        <a href="{{ report_url }}">Перейти к заполнению отчета</a><br>
+        <a href="{{ show_url }}">Открыть карточку мероприятия</a>
+    </p>
+</div>
