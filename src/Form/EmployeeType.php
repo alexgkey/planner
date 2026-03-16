@@ -6,6 +6,7 @@ use App\Entity\Department;
 use App\Entity\Employee;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -29,8 +30,8 @@ class EmployeeType extends AbstractType
                 new Regex(
                     pattern: '/^89\d{9}$/',
                     message: 'Номер телефона должен быть в формате 89XXXXXXXXX (11 цифр)'
-                )
-            ]
+                ),
+            ],
         ]);
 
         if ($options['include_department']) {
@@ -49,6 +50,14 @@ class EmployeeType extends AbstractType
 
             $builder->add('department', EntityType::class, $departmentFieldOptions);
         }
+
+        if ($options['include_work_start_date']) {
+            $builder->add('workStartDate', DateType::class, [
+                'label' => 'Дата начала работы',
+                'widget' => 'single_text',
+                'required' => false,
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void
@@ -57,11 +66,13 @@ class EmployeeType extends AbstractType
             'data_class' => Employee::class,
             'include_fio' => true,
             'include_department' => true,
+            'include_work_start_date' => false,
             'department_choices' => null,
         ]);
 
         $resolver->setAllowedTypes('include_fio', 'bool');
         $resolver->setAllowedTypes('include_department', 'bool');
+        $resolver->setAllowedTypes('include_work_start_date', 'bool');
         $resolver->setAllowedTypes('department_choices', ['null', 'array']);
     }
 }

@@ -15,6 +15,12 @@
                 {{ form_row(form.department) }}
             </div>
         {% endif %}
+
+        {% if form.workStartDate is defined %}
+            <div class="col-md-6">
+                {{ form_row(form.workStartDate) }}
+            </div>
+        {% endif %}
     </div>
 
     <div class="d-flex justify-content-end gap-2 mt-4">

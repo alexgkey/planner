@@ -3,11 +3,18 @@
 {% block title %}{{ employee.fio }}{% endblock %}
 
 {% block body %}
-<div class="container py-5" style="max-width: 800px;">
-    <div class="card shadow-sm">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+<div class="container py-5" style="max-width: 1100px;">
+    {% set can_manage_profile = is_granted('EMPLOYEE_EDIT', employee) %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center gap-3 flex-wrap">
             <h1 class="mb-0 h3">{{ employee.fio }}</h1>
-            <a href="{{ path('app_employee_index') }}" class="btn btn-sm btn-outline-secondary">Назад к списку</a>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ path('app_employee_index') }}" class="btn btn-sm btn-outline-secondary">Назад к списку</a>
+                {% if is_granted('EMPLOYEE_EDIT', employee) %}
+                    <a href="{{ path('app_employee_edit', {'id': employee.id}) }}" class="btn btn-sm btn-primary">Редактировать</a>
+                {% endif %}
+            </div>
         </div>
         <div class="card-body">
             <dl class="row mb-0">
@@ -23,17 +30,217 @@
                 <dt class="col-sm-4 text-muted">Аккаунт</dt>
                 <dd class="col-sm-8">{{ employee.userAccount ? employee.userAccount.email : 'Нет' }}</dd>
 
+                <dt class="col-sm-4 text-muted">Дата начала работы</dt>
+                <dd class="col-sm-8">{{ employee.workStartDate ? employee.workStartDate|date('d.m.Y') : '—' }}</dd>
+
+                <dt class="col-sm-4 text-muted">Текущий стаж</dt>
+                <dd class="col-sm-8">{{ employee.currentWorkExperienceLabel ?: '—' }}</dd>
+
                 <dt class="col-sm-4 text-muted">Статус</dt>
                 <dd class="col-sm-8">{{ employee.isActive ? 'Активен' : 'Неактивен' }}</dd>
             </dl>
         </div>
-        <div class="card-footer bg-light d-flex justify-content-end gap-2 flex-wrap">
-            {% if is_granted('EMPLOYEE_EDIT', employee) %}
-                <a href="{{ path('app_employee_edit', {'id': employee.id}) }}" class="btn btn-primary">Редактировать</a>
-            {% endif %}
-            {% if is_granted('EMPLOYEE_DELETE', employee) %}
+        {% if is_granted('EMPLOYEE_DELETE', employee) %}
+            <div class="card-footer bg-light d-flex justify-content-end">
                 {{ include('employee/_delete_form.html.twig') }}
-            {% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12 col-xl-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                    <h2 class="h5 mb-0">Почетные звания и награды</h2>
+                    {% if can_manage_profile %}
+                        <a href="{{ path('app_employee_award_new', {'id': employee.id}) }}" class="btn btn-sm btn-outline-primary">Добавить</a>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    {% if employee.awards is empty %}
+                        <p class="text-muted m-3">Записей пока нет.</p>
+                    {% else %}
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Тип</th>
+                                        <th>Ведомство</th>
+                                        <th>Год</th>
+                                        <th class="text-end">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for award in employee.awards %}
+                                        <tr>
+                                            <td>
+                                                {{ award.type.getLabel() }}
+                                                {% if award.basis %}<div class="small text-muted">{{ award.basis }}</div>{% endif %}
+                                            </td>
+                                            <td>{{ award.ministry }}</td>
+                                            <td>{{ award.year }}</td>
+                                            <td class="text-end">
+                                                {% if can_manage_profile %}
+                                                    <a href="{{ path('app_employee_award_edit', {'id': award.id}) }}" class="btn btn-sm btn-outline-secondary">Изменить</a>
+                                                    <form method="post" action="{{ path('app_employee_award_delete', {'id': award.id}) }}" class="d-inline" onsubmit="return confirm('Удалить запись о награде?');">
+                                                        <input type="hidden" name="_token" value="{{ csrf_token('award' ~ award.id) }}">
+                                                        <button class="btn btn-sm btn-outline-danger">Удалить</button>
+                                                    </form>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                    <h2 class="h5 mb-0">Образование</h2>
+                    {% if can_manage_profile %}
+                        <a href="{{ path('app_employee_education_new', {'id': employee.id}) }}" class="btn btn-sm btn-outline-primary">Добавить</a>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    {% if employee.educations is empty %}
+                        <p class="text-muted m-3">Записей пока нет.</p>
+                    {% else %}
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Тип</th>
+                                        <th>Учебное заведение</th>
+                                        <th>Специальность</th>
+                                        <th>Год</th>
+                                        <th class="text-end">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for education in employee.educations %}
+                                        <tr>
+                                            <td>{{ education.type.getLabel() }}</td>
+                                            <td>{{ education.institution }}</td>
+                                            <td>{{ education.specialty }}</td>
+                                            <td>{{ education.year }}</td>
+                                            <td class="text-end">
+                                                {% if can_manage_profile %}
+                                                    <a href="{{ path('app_employee_education_edit', {'id': education.id}) }}" class="btn btn-sm btn-outline-secondary">Изменить</a>
+                                                    <form method="post" action="{{ path('app_employee_education_delete', {'id': education.id}) }}" class="d-inline" onsubmit="return confirm('Удалить запись об образовании?');">
+                                                        <input type="hidden" name="_token" value="{{ csrf_token('education' ~ education.id) }}">
+                                                        <button class="btn btn-sm btn-outline-danger">Удалить</button>
+                                                    </form>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                    <h2 class="h5 mb-0">Курсы и профпереподготовка</h2>
+                    {% if can_manage_profile %}
+                        <a href="{{ path('app_employee_training_new', {'id': employee.id}) }}" class="btn btn-sm btn-outline-primary">Добавить</a>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    {% if employee.trainings is empty %}
+                        <p class="text-muted m-3">Записей пока нет.</p>
+                    {% else %}
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Тип</th>
+                                        <th>Учреждение</th>
+                                        <th>Год</th>
+                                        <th>Часы</th>
+                                        <th class="text-end">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for training in employee.trainings %}
+                                        <tr>
+                                            <td>{{ training.type.getLabel() }}</td>
+                                            <td>{{ training.institution }}</td>
+                                            <td>{{ training.year }}</td>
+                                            <td>{{ training.hours }}</td>
+                                            <td class="text-end">
+                                                {% if can_manage_profile %}
+                                                    <a href="{{ path('app_employee_training_edit', {'id': training.id}) }}" class="btn btn-sm btn-outline-secondary">Изменить</a>
+                                                    <form method="post" action="{{ path('app_employee_training_delete', {'id': training.id}) }}" class="d-inline" onsubmit="return confirm('Удалить запись о курсе?');">
+                                                        <input type="hidden" name="_token" value="{{ csrf_token('training' ~ training.id) }}">
+                                                        <button class="btn btn-sm btn-outline-danger">Удалить</button>
+                                                    </form>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-xl-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                    <h2 class="h5 mb-0">Достижения</h2>
+                    {% if can_manage_profile %}
+                        <a href="{{ path('app_employee_achievement_new', {'id': employee.id}) }}" class="btn btn-sm btn-outline-primary">Добавить</a>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    {% if employee.achievements is empty %}
+                        <p class="text-muted m-3">Записей пока нет.</p>
+                    {% else %}
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Название</th>
+                                        <th>Статус</th>
+                                        <th>Год</th>
+                                        <th class="text-end">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for achievement in employee.achievements %}
+                                        <tr>
+                                            <td>{{ achievement.title }}</td>
+                                            <td>{{ achievement.status.getLabel() }}</td>
+                                            <td>{{ achievement.year }}</td>
+                                            <td class="text-end">
+                                                {% if can_manage_profile %}
+                                                    <a href="{{ path('app_employee_achievement_edit', {'id': achievement.id}) }}" class="btn btn-sm btn-outline-secondary">Изменить</a>
+                                                    <form method="post" action="{{ path('app_employee_achievement_delete', {'id': achievement.id}) }}" class="d-inline" onsubmit="return confirm('Удалить достижение?');">
+                                                        <input type="hidden" name="_token" value="{{ csrf_token('achievement' ~ achievement.id) }}">
+                                                        <button class="btn btn-sm btn-outline-danger">Удалить</button>
+                                                    </form>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 </div>

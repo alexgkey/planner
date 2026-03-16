@@ -56,6 +56,7 @@ class EmployeeController extends AbstractController
             $formOptions = [
                 'include_fio' => true,
                 'include_department' => true,
+                'include_work_start_date' => true,
             ];
         } elseif ($this->isGranted(AppPermissions::EMPLOYEE_MANAGE_DEPARTMENT)) {
             if (null === $currentDepartment) {
@@ -65,6 +66,7 @@ class EmployeeController extends AbstractController
             $formOptions = [
                 'include_fio' => true,
                 'include_department' => false,
+                'include_work_start_date' => true,
             ];
         } else {
             throw $this->createAccessDeniedException();
@@ -109,6 +111,7 @@ class EmployeeController extends AbstractController
         $formOptions = [
             'include_fio' => $isAdmin,
             'include_department' => $isAdmin,
+            'include_work_start_date' => $isAdmin,
         ];
 
         $form = $this->createForm(EmployeeType::class, $employee, $formOptions);

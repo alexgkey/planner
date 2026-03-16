@@ -11,7 +11,7 @@
         </div>
         <div class="card-body">
             {% if is_phone_only_edit %}
-                <p class="text-muted">Сейчас для этого уровня доступа доступно редактирование только телефона.</p>
+                <p class="text-muted">Для этого уровня доступа сейчас доступно редактирование только телефона.</p>
             {% endif %}
 
             {{ include('employee/_form.html.twig', {'button_label': 'Обновить'}) }}
