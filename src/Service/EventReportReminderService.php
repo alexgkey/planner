@@ -36,7 +36,7 @@ final class EventReportReminderService
         $this->timezoneObject = new \DateTimeZone($this->timezone);
     }
 
-    public function sendPendingReminders(?\DateTimeImmutable $runAt = null): int
+    public function sendPendingReminders(?\DateTimeImmutable $runAt = null, bool $dryRun = false): int
     {
         $runAt = $runAt?->setTimezone($this->timezoneObject) ?? new \DateTimeImmutable('now', $this->timezoneObject);
         $events = $this->eventRepository->findEventsNeedingReportReminder($runAt, $this->windowDays);
@@ -57,30 +57,32 @@ final class EventReportReminderService
                 continue;
             }
 
-            $this->mailer->send(
-                (new TemplatedEmail())
-                    ->from(new Address($this->fromEmail, $this->fromName))
-                    ->to($recipientEmail)
-                    ->subject(sprintf('Напоминание: заполните отчет по мероприятию "%s"', $event->getTitle()))
-                    ->htmlTemplate('emails/event_report_reminder.html.twig')
-                    ->context([
-                        'event' => $event,
-                        'employee' => $creator->getEmployee(),
-                        'show_url' => $this->urlGenerator->generate('app_event_show', ['id' => $event->getId()], UrlGeneratorInterface::ABSOLUTE_URL),
-                        'report_url' => $this->urlGenerator->generate('app_event_report', ['id' => $event->getId()], UrlGeneratorInterface::ABSOLUTE_URL),
-                        'reminder_day_number' => $event->getReportReminderSentCount() + 1,
-                        'window_days' => $this->windowDays,
-                    ])
-            );
+            if (!$dryRun) {
+                $this->mailer->send(
+                    (new TemplatedEmail())
+                        ->from(new Address($this->fromEmail, $this->fromName))
+                        ->to($recipientEmail)
+                        ->subject(sprintf('Напоминание: заполните отчет по мероприятию "%s"', $event->getTitle()))
+                        ->htmlTemplate('emails/event_report_reminder.html.twig')
+                        ->context([
+                            'event' => $event,
+                            'employee' => $creator->getEmployee(),
+                            'show_url' => $this->urlGenerator->generate('app_event_show', ['id' => $event->getId()], UrlGeneratorInterface::ABSOLUTE_URL),
+                            'report_url' => $this->urlGenerator->generate('app_event_report', ['id' => $event->getId()], UrlGeneratorInterface::ABSOLUTE_URL),
+                            'reminder_day_number' => $event->getReportReminderSentCount() + 1,
+                            'window_days' => $this->windowDays,
+                        ])
+                );
 
-            $event
-                ->setReportReminderLastSentAt($runAt)
-                ->setReportReminderSentCount($event->getReportReminderSentCount() + 1);
+                $event
+                    ->setReportReminderLastSentAt($runAt)
+                    ->setReportReminderSentCount($event->getReportReminderSentCount() + 1);
+            }
 
             ++$sentCount;
         }
 
-        if ($sentCount > 0) {
+        if (!$dryRun && $sentCount > 0) {
             $this->entityManager->flush();
         }
 
