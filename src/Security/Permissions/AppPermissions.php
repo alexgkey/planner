@@ -9,6 +9,8 @@ final class AppPermissions
     public const EVENT_MANAGE_OWN = 'ROLE_EVENT_MANAGE_OWN';
     public const EVENT_MANAGE_ANY = 'ROLE_EVENT_MANAGE_ANY';
     public const EVENT_ADMIN = 'ROLE_EVENT_ADMIN';
+    public const EVENT_REPORT_VIEW = 'ROLE_EVENT_REPORT_VIEW';
+    public const EVENT_REPORT_MANAGE = 'ROLE_EVENT_REPORT_MANAGE';
 
     public const DEPARTMENT_VIEW = 'ROLE_DEPARTMENT_VIEW';
     public const DEPARTMENT_MANAGE_OWN = 'ROLE_DEPARTMENT_MANAGE_OWN';

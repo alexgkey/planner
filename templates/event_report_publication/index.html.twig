@@ -1,0 +1,141 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Публикация отчетов{% endblock %}
+
+{% block body %}
+<div class="container py-4 py-lg-5">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">Публикация отчетов</h1>
+            <p class="text-muted mb-0">В очереди показываются непубликованные материалы и записи, опубликованные или пропущенные за последние {{ visible_days }} дн.</p>
+        </div>
+    </div>
+
+    {% for message in app.flashes('success') %}
+        <div class="alert alert-success">{{ message }}</div>
+    {% endfor %}
+    {% for message in app.flashes('warning') %}
+        <div class="alert alert-warning">{{ message }}</div>
+    {% endfor %}
+    {% for message in app.flashes('danger') %}
+        <div class="alert alert-danger">{{ message }}</div>
+    {% endfor %}
+
+    {% if publications is empty %}
+        <div class="card shadow-sm border-0">
+            <div class="card-body py-5 text-center text-muted">
+                Сейчас в очереди публикаций ничего нет.
+            </div>
+        </div>
+    {% else %}
+        <div class="row g-4">
+            {% for publication in publications %}
+                {% set report = publication.eventReport %}
+                {% set event = report.event %}
+                <div class="col-12">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body">
+                            <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
+                                <div>
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                        <span class="badge text-bg-primary">{{ publication.platform.label }}</span>
+                                        {% set statusClass = {
+                                            'draft': 'secondary',
+                                            'ready': 'info',
+                                            'published': 'success',
+                                            'skipped': 'warning',
+                                            'failed': 'danger'
+                                        } %}
+                                        <span class="badge text-bg-{{ statusClass[publication.status.value]|default('secondary') }}">{{ publication.status.label }}</span>
+                                    </div>
+                                    <h2 class="h5 mb-1">{{ event.title }}</h2>
+                                    <div class="text-muted small d-flex flex-wrap gap-3">
+                                        {% if event.date %}
+                                            <span><i class="bi bi-calendar-event me-1"></i>{{ event.date|date('d.m.Y') }}{% if event.time %}, {{ event.time|date('H:i') }}{% endif %}</span>
+                                        {% endif %}
+                                        {% if event.department %}
+                                            <span><i class="bi bi-diagram-3 me-1"></i>{{ event.department.title }}</span>
+                                        {% endif %}
+                                        <span><i class="bi bi-clock-history me-1"></i>Отчет создан {{ report.createAt|date('d.m.Y H:i') }}</span>
+                                    </div>
+                                </div>
+                                <div class="d-flex flex-wrap align-items-start gap-2">
+                                    <a href="{{ path('app_event_show', {'id': event.id}) }}" class="btn btn-outline-secondary btn-sm">К мероприятию</a>
+                                    {% if is_granted(Permissions.EVENT_REPORT_MANAGE) %}
+                                        <a href="{{ path('app_event_report_publication_edit', {'id': publication.id}) }}" class="btn btn-outline-primary btn-sm">Редактировать</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            {% if publication.errorMessage %}
+                                <div class="alert alert-danger py-2 small">{{ publication.errorMessage }}</div>
+                            {% endif %}
+
+                            <div class="row g-3">
+                                <div class="col-lg-6">
+                                    <div class="border rounded p-3 h-100">
+                                        <div class="fw-semibold mb-2">Исходный текст</div>
+                                        <div class="small text-muted" style="white-space: pre-line;">{{ publication.sourceText ?: 'Пока не заполнен.' }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="border rounded p-3 h-100">
+                                        <div class="fw-semibold mb-2">Текст для публикации</div>
+                                        <div class="small text-muted" style="white-space: pre-line;">{{ publication.preparedText ?: 'Пока не подготовлен.' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {% if report.photos|length > 0 %}
+                                <div class="mt-3">
+                                    <div class="fw-semibold mb-2">Фотографии</div>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        {% for photo in report.photos %}
+                                            {% if photo.imageName %}
+                                                <a href="{{ vich_uploader_asset(photo, 'imageFile') | imagine_filter('report_large') }}" target="_blank">
+                                                    <img src="{{ vich_uploader_asset(photo, 'imageFile') | imagine_filter('report_thumbnail') }}" alt="Фото" class="rounded border" style="width: 96px; height: 96px; object-fit: cover;">
+                                                </a>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 pt-3 border-top">
+                                <div class="small text-muted d-flex flex-wrap gap-3">
+                                    {% if publication.publishedAt %}
+                                        <span><i class="bi bi-send-check me-1"></i>Опубликовано {{ publication.publishedAt|date('d.m.Y H:i') }}</span>
+                                    {% endif %}
+                                    {% if publication.skippedAt %}
+                                        <span><i class="bi bi-eye-slash me-1"></i>Скрыто {{ publication.skippedAt|date('d.m.Y H:i') }}</span>
+                                    {% endif %}
+                                    {% if publication.externalMessageId %}
+                                        <span><i class="bi bi-hash me-1"></i>ID сообщения: {{ publication.externalMessageId }}</span>
+                                    {% endif %}
+                                </div>
+
+                                {% if is_granted(Permissions.EVENT_REPORT_MANAGE) and publication.status.value not in ['published', 'skipped'] %}
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <form method="post" action="{{ path('app_event_report_publication_prepare', {'id': publication.id}) }}">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('prepare_publication' ~ publication.id) }}">
+                                            <button class="btn btn-outline-secondary btn-sm">Подготовить текст</button>
+                                        </form>
+                                        <form method="post" action="{{ path('app_event_report_publication_skip', {'id': publication.id}) }}">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('skip_publication' ~ publication.id) }}">
+                                            <button class="btn btn-outline-warning btn-sm">Не публиковать</button>
+                                        </form>
+                                        <form method="post" action="{{ path('app_event_report_publication_publish', {'id': publication.id}) }}">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('publish_publication' ~ publication.id) }}">
+                                            <button class="btn btn-primary btn-sm">Опубликовать</button>
+                                        </form>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

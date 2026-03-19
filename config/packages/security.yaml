@@ -1,11 +1,8 @@
 security:
-    # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
     password_hashers:
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
 
-    # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
-        # Провайдер для загрузки пользователя из базы
         app_user_provider:
             entity:
                 class: App\Entity\User
@@ -13,7 +10,6 @@ security:
 
     firewalls:
         dev:
-            # Профайлер и ассеты всегда доступны без авторизации
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
         main:
@@ -42,24 +38,21 @@ security:
         strategy: unanimous
 
     role_hierarchy:
-        # Мероприятия
         ROLE_EVENT_VIEW_ANY: [ROLE_EVENT_VIEW]
         ROLE_EVENT_MANAGE_OWN: [ROLE_EVENT_VIEW]
         ROLE_EVENT_MANAGE_ANY: [ROLE_EVENT_MANAGE_OWN, ROLE_EVENT_VIEW_ANY]
         ROLE_EVENT_ADMIN: [ROLE_EVENT_MANAGE_ANY]
+        ROLE_EVENT_REPORT_MANAGE: [ROLE_EVENT_REPORT_VIEW]
 
-        # Подразделения
         ROLE_DEPARTMENT_MANAGE_OWN: [ROLE_DEPARTMENT_VIEW]
         ROLE_DEPARTMENT_MANAGE_ANY: [ROLE_DEPARTMENT_MANAGE_OWN]
         ROLE_DEPARTMENT_ADMIN: [ROLE_DEPARTMENT_MANAGE_ANY]
 
-        # Пользователи
         ROLE_USER_MANAGE_OWN: [ROLE_USER_VIEW]
         ROLE_USER_VIEW_ALL: [ROLE_USER_VIEW]
         ROLE_USER_MANAGE_ALL: [ROLE_USER_MANAGE_OWN, ROLE_USER_VIEW_ALL]
         ROLE_USER_ADMIN: [ROLE_USER_MANAGE_ALL]
 
-        # Сотрудники
         ROLE_EMPLOYEE_MANAGE_OWN: [ROLE_EMPLOYEE_VIEW]
         ROLE_EMPLOYEE_VIEW_DEPARTMENT: [ROLE_EMPLOYEE_VIEW]
         ROLE_EMPLOYEE_VIEW_ANY: [ROLE_EMPLOYEE_VIEW_DEPARTMENT]

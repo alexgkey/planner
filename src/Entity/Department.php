@@ -37,8 +37,8 @@ class Department
     /**
      * @var Collection<int, User>
      */
-    #[ORM\OneToMany(targetEntity: User::class, mappedBy: 'department')]
-    private Collection $users;
+//    #[ORM\OneToMany(targetEntity: User::class, mappedBy: 'department')]
+//    private Collection $users;
 
     /**
      * @var Collection<int, Event>
@@ -138,32 +138,32 @@ class Department
     /**
      * @return Collection<int, User>
      */
-    public function getUsers(): Collection
-    {
-        return $this->users;
-    }
+//    public function getUsers(): Collection
+//    {
+//        return $this->users;
+//    }
 
-    public function addUser(User $user): static
-    {
-        if (!$this->users->contains($user)) {
-            $this->users->add($user);
-            $user->setDepartment($this);
-        }
-
-        return $this;
-    }
-
-    public function removeUser(User $user): static
-    {
-        if ($this->users->removeElement($user)) {
-            // set the owning side to null (unless already changed)
-            if ($user->getDepartment() === $this) {
-                $user->setDepartment(null);
-            }
-        }
-
-        return $this;
-    }
+//    public function addUser(User $user): static
+//    {
+//        if (!$this->users->contains($user)) {
+//            $this->users->add($user);
+//            $user->setDepartment($this);
+//        }
+//
+//        return $this;
+//    }
+//
+//    public function removeUser(User $user): static
+//    {
+//        if ($this->users->removeElement($user)) {
+//            // set the owning side to null (unless already changed)
+//            if ($user->getDepartment() === $this) {
+//                $user->setDepartment(null);
+//            }
+//        }
+//
+//        return $this;
+//    }
 
     /**
      * @return Collection<int, Event>

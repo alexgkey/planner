@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Редактирование публикации{% endblock %}
+
+{% block body %}
+<div class="container py-4 py-lg-5" style="max-width: 960px;">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">Редактирование публикации</h1>
+            <p class="text-muted mb-0">{{ publication.eventReport.event.title }}</p>
+        </div>
+        <a href="{{ path('app_event_report_publication_index') }}" class="btn btn-outline-secondary">Назад к очереди</a>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <div class="row g-3 small text-muted">
+                <div class="col-md-6">Площадка: <strong>{{ publication.platform.label }}</strong></div>
+                <div class="col-md-6">Статус: <strong>{{ publication.status.label }}</strong></div>
+                {% if publication.eventReport.event.date %}
+                    <div class="col-md-6">Дата мероприятия: <strong>{{ publication.eventReport.event.date|date('d.m.Y') }}{% if publication.eventReport.event.time %}, {{ publication.eventReport.event.time|date('H:i') }}{% endif %}</strong></div>
+                {% endif %}
+                {% if publication.eventReport.event.department %}
+                    <div class="col-md-6">Подразделение: <strong>{{ publication.eventReport.event.department.title }}</strong></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h2 class="h6 mb-3">Исходный текст отчета</h2>
+                    <div class="small text-muted" style="white-space: pre-line;">{{ publication.sourceText ?: 'Пока не заполнен.' }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    {{ form_start(form) }}
+                        {{ form_row(form.preparedText) }}
+                        <div class="d-flex flex-wrap justify-content-end gap-2 mt-4">
+                            <a href="{{ path('app_event_report_publication_index') }}" class="btn btn-outline-secondary">Отмена</a>
+                            <button class="btn btn-primary">Сохранить текст</button>
+                        </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if publication.eventReport.photos|length > 0 %}
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-body">
+                <h2 class="h6 mb-3">Фотографии</h2>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for photo in publication.eventReport.photos %}
+                        {% if photo.imageName %}
+                            <a href="{{ vich_uploader_asset(photo, 'imageFile') | imagine_filter('report_large') }}" target="_blank">
+                                <img src="{{ vich_uploader_asset(photo, 'imageFile') | imagine_filter('report_thumbnail') }}" alt="Фото" class="rounded border" style="width: 120px; height: 120px; object-fit: cover;">
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

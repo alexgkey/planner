@@ -4,49 +4,46 @@
         <meta charset="UTF-8" name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}Welcome!{% endblock %}</title>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><circle cx=%2264%22 cy=%2264%22 r=%2256%22 fill=%22%23111%22/><text y=%2280%22 x=%2230%22 font-size=%2252%22 fill=%22%23fff%22>sf</text></svg>">
-        {# Bootstrap CSS #}
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
         <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
-        {% block stylesheets %}
-            {# Сюда можно добавлять стили для конкретных страниц #}
-        {% endblock %}
+        {% block stylesheets %}{% endblock %}
     </head>
     <body>
 
     {% if app.user %}
     <header class="d-flex justify-content-center py-3">
         {% set current_route = app.request.attributes.get('_route') %}
-        <ul class="nav nav-pills align-items-center">
+        {% set is_publications_route = current_route starts with 'app_event_report_publication_' %}
+        {% set is_events_route = current_route starts with 'app_event_' and not is_publications_route %}
+        <ul class="nav nav-pills align-items-center flex-wrap justify-content-center gap-1">
             {% if is_granted(Permissions.EVENT_VIEW) %}
                 <li class="nav-item">
-                    <a href="{{ path('app_event_index') }}" class="nav-link {% if current_route starts with 'app_event_' %}active{% endif %}">
-                        План
-                    </a>
+                    <a href="{{ path('app_event_index') }}" class="nav-link {% if is_events_route %}active{% endif %}">План</a>
+                </li>
+            {% endif %}
+
+            {% if is_granted(Permissions.EVENT_REPORT_VIEW) or is_granted(Permissions.EVENT_REPORT_MANAGE) %}
+                <li class="nav-item">
+                    <a href="{{ path('app_event_report_publication_index') }}" class="nav-link {% if is_publications_route %}active{% endif %}">Публикации</a>
                 </li>
             {% endif %}
 
             {% if is_granted(Permissions.DEPARTMENT_VIEW) %}
                 <li class="nav-item">
-                    <a href="{{ path('app_department_index') }}" class="nav-link {% if current_route starts with 'app_department_' %}active{% endif %}">
-                        Подразделения
-                    </a>
+                    <a href="{{ path('app_department_index') }}" class="nav-link {% if current_route starts with 'app_department_' %}active{% endif %}">Подразделения</a>
                 </li>
             {% endif %}
 
             {% if is_granted(Permissions.EMPLOYEE_VIEW) %}
                 <li class="nav-item">
-                    <a href="{{ path('app_employee_index') }}" class="nav-link {% if current_route starts with 'app_employee_' %}active{% endif %}">
-                        Сотрудники
-                    </a>
+                    <a href="{{ path('app_employee_index') }}" class="nav-link {% if current_route starts with 'app_employee_' %}active{% endif %}">Сотрудники</a>
                 </li>
             {% endif %}
 
             {% if is_granted(Permissions.USER_VIEW) %}
                 <li class="nav-item">
-                    <a href="{{ path('app_user_index') }}" class="nav-link {% if current_route starts with 'app_user_' %}active{% endif %}">
-                        Пользователи
-                    </a>
+                    <a href="{{ path('app_user_index') }}" class="nav-link {% if current_route starts with 'app_user_' %}active{% endif %}">Пользователи</a>
                 </li>
             {% endif %}
 
@@ -59,11 +56,8 @@
 
     {% block body %}{% endblock %}
 
-    {# Bootstrap JS #}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 
-    {% block javascripts %}
-        {# Сюда можно добавлять скрипты для конкретных страниц #}
-    {% endblock %}
+    {% block javascripts %}{% endblock %}
     </body>
 </html>
