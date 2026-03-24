@@ -81,7 +81,7 @@ class EventReportController extends AbstractController
 
             $entityManager->persist($report);
             $entityManager->persist($event);
-            $publicationManager->syncTelegramPublication($report, $this->getUser());
+            $publicationManager->syncAllPublications($report, $this->getUser());
             $entityManager->flush();
 
             $this->addFlash('success', 'Отчет успешно сохранен. Статус мероприятия обновлен на "Проведено".');

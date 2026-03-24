@@ -8,8 +8,10 @@ use App\Entity\User;
 
 class EventReportPublicationPublisher
 {
-    public function __construct(private readonly TelegramPublicationClient $telegramPublicationClient)
-    {
+    public function __construct(
+        private readonly TelegramPublicationClient $telegramPublicationClient,
+        private readonly VkPublicationClient $vkPublicationClient,
+    ) {
     }
 
     public function publish(EventReportPublication $publication, ?User $actor = null): void
@@ -20,6 +22,7 @@ class EventReportPublicationPublisher
 
         $result = match ($publication->getPlatform()) {
             EventReportPublicationPlatform::TELEGRAM => $this->telegramPublicationClient->publish($publication),
+            EventReportPublicationPlatform::VK => $this->vkPublicationClient->publish($publication),
         };
 
         $publication

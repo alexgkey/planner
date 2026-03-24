@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #999; padding: 6px; vertical-align: top; }
+        th { background: #f0f0f0; font-weight: bold; }
+        .department-row td { background: #d9eaf7; font-weight: bold; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <table>
+        <tr>
+            <td colspan="30"><strong>Выгрузка мероприятий</strong></td>
+        </tr>
+        <tr>
+            <td colspan="30">Сформировано: {{ generated_at|date('d.m.Y H:i') }}</td>
+        </tr>
+        <tr>
+            <th>Дата</th>
+            <th>Время</th>
+            <th>Статус</th>
+            <th>Название</th>
+            <th>Место</th>
+            <th>Уровень</th>
+            <th>Формат</th>
+            <th>Направление</th>
+            <th>Доступность</th>
+            <th>Целевая аудитория</th>
+            <th>Взаимодействие</th>
+            <th>Ответственный</th>
+            <th>План посетителей</th>
+            <th>Примечание</th>
+            <th>Дата создания отчета</th>
+            <th>Автор отчета</th>
+            <th>Последний редактор отчета</th>
+            <th>Посетители/просмотры</th>
+            <th>Участники</th>
+            <th>Инвалиды и ОВЗ</th>
+            <th>Пенсионеры</th>
+            <th>Взрослые</th>
+            <th>Молодежь</th>
+            <th>Дети</th>
+            <th>Смешанная аудитория</th>
+            <th>Дети на учете</th>
+            <th>Участники СВО</th>
+            <th>Семьи участников СВО</th>
+            <th>Молодые семьи</th>
+            <th>Волонтеры</th>
+        </tr>
+        {% for department_title, department_events in rows_by_department %}
+            <tr class="department-row">
+                <td colspan="30">{{ department_title }}</td>
+            </tr>
+            {% for event in department_events %}
+                {% set report = event.report %}
+                <tr>
+                    <td>{{ event.date ? event.date|date('d.m.Y') : '' }}</td>
+                    <td>{{ event.time ? event.time|date('H:i') : '' }}</td>
+                    <td>{{ event.status ? event.status.label : '' }}</td>
+                    <td>{{ event.title }}</td>
+                    <td>{{ event.venue ?: '' }}</td>
+                    <td>{{ event.eventLevel ? event.eventLevel.label : '' }}</td>
+                    <td>{{ event.onOffLine ? event.onOffLine.label : '' }}</td>
+                    <td>{{ event.eventDirection ? event.eventDirection.label : '' }}</td>
+                    <td>{{ event.eventAccessibility ? event.eventAccessibility.label : '' }}</td>
+                    <td>{{ event.targetAudience ? event.targetAudience.label : '' }}</td>
+                    <td>{{ event.interaction ?: '' }}</td>
+                    <td>{{ event.responsible ?: '' }}</td>
+                    <td>{{ event.plannedVisitors ?? '' }}</td>
+                    <td>{{ event.note ?: '' }}</td>
+                    <td>{{ report and report.createAt ? report.createAt|date('d.m.Y H:i') : '' }}</td>
+                    <td>{{ report and report.creator and report.creator.employee ? report.creator.employee.fio : '' }}</td>
+                    <td>{{ report and report.lastEditor and report.lastEditor.employee ? report.lastEditor.employee.fio : '' }}</td>
+                    <td>{{ report ? (report.visitorsCount ?? '') : '' }}</td>
+                    <td>{{ report ? (report.participantsCount ?? '') : '' }}</td>
+                    <td>{{ report ? (report.disabledVisitorsCount ?? '') : '' }}</td>
+                    <td>{{ report ? (report.seniorsVisitorsCount ?? '') : '' }}</td>
+                    <td>{{ report ? (report.adultsVisitorsCount ?? '') : '' }}</td>
+                    <td>{{ report ? (report.youthVisitorsCount ?? '') : '' }}</td>
+                    <td>{{ report ? (report.childrenVisitorsCount ?? '') : '' }}</td>
+                    <td>{{ report ? (report.mixedAudienceCount ?? '') : '' }}</td>
+                    <td>{{ report ? (report.childrenAtRiskCount ?? '') : '' }}</td>
+                    <td>{{ report ? (report.smoParticipantsCount ?? '') : '' }}</td>
+                    <td>{{ report ? (report.smoFamiliesCount ?? '') : '' }}</td>
+                    <td>{{ report ? (report.youngFamiliesCount ?? '') : '' }}</td>
+                    <td>{{ report ? (report.volunteersCount ?? '') : '' }}</td>
+                </tr>
+            {% endfor %}
+        {% endfor %}
+    </table>
+</body>
+</html>

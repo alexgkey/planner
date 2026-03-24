@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\Enum\EventReportPublicationPlatform;
 use App\Entity\Enum\EventReportPublicationStatus;
 use App\Entity\EventReportPublication;
 use App\Form\EventReportPublicationType;
@@ -26,17 +27,49 @@ class EventReportPublicationController extends AbstractController
     public function __construct(
         #[Autowire('%env(int:EVENT_REPORT_PUBLICATION_VISIBLE_DAYS)%')]
         private readonly int $visibleDays,
+        #[Autowire('%env(bool:TELEGRAM_PUBLICATION_ENABLED)%')]
+        private readonly bool $telegramEnabled,
+        #[Autowire('%env(bool:VK_PUBLICATION_ENABLED)%')]
+        private readonly bool $vkEnabled,
     ) {
     }
 
     #[Route(name: 'app_event_report_publication_index', methods: ['GET'])]
     public function index(EventReportPublicationRepository $repository, EventReportPublicationManager $manager): Response
     {
-        $manager->backfillTelegramPublications($this->getUser());
+        $manager->backfillPlatformPublications($this->getUser());
+        $publications = $repository->findVisibleQueue($this->visibleDays);
+
+        $cards = [];
+        foreach ($publications as $publication) {
+            $report = $publication->getEventReport();
+            if (null === $report || null === $report->getId()) {
+                continue;
+            }
+
+            $reportId = $report->getId();
+            if (!isset($cards[$reportId])) {
+                $cards[$reportId] = [
+                    'report' => $report,
+                    'event' => $report->getEvent(),
+                    'publications' => [],
+                ];
+            }
+
+            $cards[$reportId]['publications'][$publication->getPlatform()->value] = $publication;
+        }
 
         return $this->render('event_report_publication/index.html.twig', [
-            'publications' => $repository->findVisibleQueue($this->visibleDays),
+            'report_cards' => array_values($cards),
             'visible_days' => $this->visibleDays,
+            'platform_enabled' => [
+                EventReportPublicationPlatform::TELEGRAM->value => $this->telegramEnabled,
+                EventReportPublicationPlatform::VK->value => $this->vkEnabled,
+            ],
+            'platform_order' => [
+                EventReportPublicationPlatform::TELEGRAM,
+                EventReportPublicationPlatform::VK,
+            ],
         ]);
     }
 
@@ -106,7 +139,7 @@ class EventReportPublicationController extends AbstractController
             try {
                 $publisher->publish($publication, $this->getUser());
                 $entityManager->flush();
-                $this->addFlash('success', 'Публикация успешно отправлена.');
+                $this->addFlash('success', sprintf('Публикация на площадке "%s" выполнена.', $publication->getPlatform()->getLabel()));
             } catch (\Throwable $exception) {
                 $publication
                     ->markAsFailed($exception->getMessage())
@@ -131,7 +164,7 @@ class EventReportPublicationController extends AbstractController
         if ($this->isCsrfTokenValid('skip_publication'.$publication->getId(), $request->getPayload()->getString('_token'))) {
             $manager->markSkipped($publication, $this->getUser());
             $entityManager->flush();
-            $this->addFlash('warning', 'Публикация отмечена как "не публиковать".');
+            $this->addFlash('warning', sprintf('Публикация на площадке "%s" отмечена как "не публиковать".', $publication->getPlatform()->getLabel()));
         }
 
         return $this->redirectToRoute('app_event_report_publication_index');

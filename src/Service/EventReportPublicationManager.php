@@ -20,13 +20,15 @@ class EventReportPublicationManager
     ) {
     }
 
-    public function backfillTelegramPublications(?User $actor = null): int
+    public function backfillPlatformPublications(?User $actor = null): int
     {
         $created = 0;
 
-        foreach ($this->eventReportRepository->findWithoutPublicationForPlatform(EventReportPublicationPlatform::TELEGRAM) as $report) {
-            $this->syncTelegramPublication($report, $actor);
-            ++$created;
+        foreach (EventReportPublicationPlatform::cases() as $platform) {
+            foreach ($this->eventReportRepository->findWithoutPublicationForPlatform($platform) as $report) {
+                $this->syncPublication($report, $platform, $actor);
+                ++$created;
+            }
         }
 
         if ($created > 0) {
@@ -36,12 +38,26 @@ class EventReportPublicationManager
         return $created;
     }
 
-    public function syncTelegramPublication(EventReport $report, ?User $actor = null): EventReportPublication
+    /**
+     * @return EventReportPublication[]
+     */
+    public function syncAllPublications(EventReport $report, ?User $actor = null): array
+    {
+        $publications = [];
+
+        foreach (EventReportPublicationPlatform::cases() as $platform) {
+            $publications[] = $this->syncPublication($report, $platform, $actor);
+        }
+
+        return $publications;
+    }
+
+    public function syncPublication(EventReport $report, EventReportPublicationPlatform $platform, ?User $actor = null): EventReportPublication
     {
         /** @var EventReportPublication|null $publication */
         $publication = $this->publicationRepository->findOneBy([
             'eventReport' => $report,
-            'platform' => EventReportPublicationPlatform::TELEGRAM,
+            'platform' => $platform,
         ]);
 
         $sourceText = $this->normalizeText($report->getPublicReportText());
@@ -49,7 +65,7 @@ class EventReportPublicationManager
         if (null === $publication) {
             $publication = (new EventReportPublication())
                 ->setEventReport($report)
-                ->setPlatform(EventReportPublicationPlatform::TELEGRAM)
+                ->setPlatform($platform)
                 ->setCreatedBy($actor ?? $report->getCreator())
                 ->setSourceText($sourceText)
                 ->setPreparedText($sourceText)

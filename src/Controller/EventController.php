@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Department;
 use App\Entity\Event;
 use App\Entity\Enum\EventStatus;
+use App\Entity\EventReport;
 use App\Form\EventType;
 use App\Repository\DepartmentRepository;
 use App\Repository\EventRepository;
@@ -23,66 +24,28 @@ class EventController extends AbstractController
     #[Route(name: 'app_event_index', methods: ['GET'])]
     public function index(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository): Response
     {
-        $employee = $this->getUser()?->getEmployee();
-        $department = $employee?->getDepartment();
-        $canViewAny = $this->isGranted(AppPermissions::EVENT_VIEW_ANY)
-            || $this->isGranted(AppPermissions::EVENT_MANAGE_ANY)
-            || $this->isGranted(AppPermissions::EVENT_ADMIN);
+        $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository);
 
-        $events = [];
-        $departmentOptions = [];
-        $monthOptions = [];
-        $selectedDepartmentIds = [];
-        $selectedMonths = [];
+        return $this->render('event/index.html.twig', $listing);
+    }
 
-        if ($canViewAny) {
-            $events = $eventRepository->findActiveByDepartment();
-            $departmentOptions = $departmentRepository->findActive();
-            $monthOptions = $this->buildMonthOptions();
+    #[Route('/export', name: 'app_event_export', methods: ['GET'])]
+    #[IsGranted(AppPermissions::EVENT_ADMIN)]
+    public function export(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository): Response
+    {
+        $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository);
+        $rowsByDepartment = $this->groupEventsForExport($listing['events']);
 
-            $defaultDepartmentIds = array_map(
-                static fn (Department $department): int => $department->getId(),
-                $departmentOptions
-            );
-            $defaultMonths = array_keys($monthOptions);
+        $content = $this->renderView('event/export.xls.twig', [
+            'rows_by_department' => $rowsByDepartment,
+            'generated_at' => new \DateTimeImmutable(),
+        ]);
 
-            $selectedDepartmentIds = $request->query->all('departments');
-            $selectedDepartmentIds = array_map('intval', is_array($selectedDepartmentIds) ? $selectedDepartmentIds : []);
-            $selectedDepartmentIds = array_values(array_intersect($selectedDepartmentIds, $defaultDepartmentIds));
-            if ([] === $selectedDepartmentIds) {
-                $selectedDepartmentIds = $defaultDepartmentIds;
-            }
+        $filename = sprintf('events-export-%s.xls', (new \DateTimeImmutable())->format('Y-m-d-His'));
 
-            $selectedMonths = $request->query->all('months');
-            $selectedMonths = is_array($selectedMonths) ? array_values(array_intersect($selectedMonths, $defaultMonths)) : [];
-            if ([] === $selectedMonths) {
-                $selectedMonths = $defaultMonths;
-            }
-
-            $events = array_values(array_filter($events, function (Event $event) use ($selectedDepartmentIds, $selectedMonths): bool {
-                $eventDepartmentId = $event->getDepartment()?->getId();
-                if (null !== $eventDepartmentId && !in_array($eventDepartmentId, $selectedDepartmentIds, true)) {
-                    return false;
-                }
-
-                $eventDate = $event->getDate();
-                if (null === $eventDate) {
-                    return true;
-                }
-
-                return in_array($eventDate->format('Y-m'), $selectedMonths, true);
-            }));
-        } elseif ($department) {
-            $events = $eventRepository->findActiveByDepartment($department);
-        }
-
-        return $this->render('event/index.html.twig', [
-            'events' => $events,
-            'can_filter_events' => $canViewAny,
-            'department_options' => $departmentOptions,
-            'month_options' => $monthOptions,
-            'selected_department_ids' => $selectedDepartmentIds,
-            'selected_months' => $selectedMonths,
+        return new Response($content, Response::HTTP_OK, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => sprintf('attachment; filename="%s"', $filename),
         ]);
     }
 
@@ -236,9 +199,137 @@ class EventController extends AbstractController
     }
 
     /**
-     * Показываем все месяцы текущего года с января.
-     * Если до конца года осталось меньше трех месяцев, добавляем первые месяцы следующего года.
-     *
+     * @return array{
+     *     events: Event[],
+     *     can_filter_events: bool,
+     *     department_options: Department[],
+     *     month_options: array<string, string>,
+     *     selected_department_ids: int[],
+     *     selected_months: string[]
+     * }
+     */
+    private function resolveEventListing(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository): array
+    {
+        $employee = $this->getUser()?->getEmployee();
+        $department = $employee?->getDepartment();
+        $canViewAny = $this->canViewAnyEvents();
+
+        $events = [];
+        $departmentOptions = [];
+        $monthOptions = [];
+        $selectedDepartmentIds = [];
+        $selectedMonths = [];
+
+        if ($canViewAny) {
+            $events = $eventRepository->findActiveByDepartment();
+            $departmentOptions = $departmentRepository->findActive();
+            $monthOptions = $this->buildMonthOptions();
+
+            $defaultDepartmentIds = array_map(
+                static fn (Department $department): int => $department->getId(),
+                $departmentOptions
+            );
+            $defaultMonths = array_keys($monthOptions);
+
+            $selectedDepartmentIds = array_map('intval', (array) $request->query->all('departments'));
+            $selectedDepartmentIds = array_values(array_intersect($selectedDepartmentIds, $defaultDepartmentIds));
+            if ([] === $selectedDepartmentIds) {
+                $selectedDepartmentIds = $defaultDepartmentIds;
+            }
+
+            $selectedMonths = (array) $request->query->all('months');
+            $selectedMonths = array_values(array_intersect($selectedMonths, $defaultMonths));
+            if ([] === $selectedMonths) {
+                $selectedMonths = $defaultMonths;
+            }
+
+            $events = $this->filterEvents($events, $selectedDepartmentIds, $selectedMonths);
+        } elseif ($department) {
+            $events = $eventRepository->findActiveByDepartment($department);
+        }
+
+        return [
+            'events' => $events,
+            'can_filter_events' => $canViewAny,
+            'department_options' => $departmentOptions,
+            'month_options' => $monthOptions,
+            'selected_department_ids' => $selectedDepartmentIds,
+            'selected_months' => $selectedMonths,
+        ];
+    }
+
+    /**
+     * @param Event[] $events
+     * @param int[] $selectedDepartmentIds
+     * @param string[] $selectedMonths
+     * @return Event[]
+     */
+    private function filterEvents(array $events, array $selectedDepartmentIds, array $selectedMonths): array
+    {
+        return array_values(array_filter($events, function (Event $event) use ($selectedDepartmentIds, $selectedMonths): bool {
+            $eventDepartmentId = $event->getDepartment()?->getId();
+            if (null !== $eventDepartmentId && !in_array($eventDepartmentId, $selectedDepartmentIds, true)) {
+                return false;
+            }
+
+            $eventDate = $event->getDate();
+            if (null === $eventDate) {
+                return true;
+            }
+
+            return in_array($eventDate->format('Y-m'), $selectedMonths, true);
+        }));
+    }
+
+    private function canViewAnyEvents(): bool
+    {
+        return $this->isGranted(AppPermissions::EVENT_VIEW_ANY)
+            || $this->isGranted(AppPermissions::EVENT_MANAGE_ANY)
+            || $this->isGranted(AppPermissions::EVENT_ADMIN);
+    }
+
+    /**
+     * @param Event[] $events
+     * @return array<string, Event[]>
+     */
+    private function groupEventsForExport(array $events): array
+    {
+        usort($events, function (Event $left, Event $right): int {
+            $leftDepartment = mb_strtolower($left->getDepartment()?->getTitle() ?? 'Без подразделения');
+            $rightDepartment = mb_strtolower($right->getDepartment()?->getTitle() ?? 'Без подразделения');
+
+            $departmentComparison = $leftDepartment <=> $rightDepartment;
+            if (0 !== $departmentComparison) {
+                return $departmentComparison;
+            }
+
+            $leftDate = $left->getDate()?->format('Y-m-d') ?? '9999-12-31';
+            $rightDate = $right->getDate()?->format('Y-m-d') ?? '9999-12-31';
+            $dateComparison = $leftDate <=> $rightDate;
+            if (0 !== $dateComparison) {
+                return $dateComparison;
+            }
+
+            $leftTime = $left->getTime()?->format('H:i') ?? '99:99';
+            $rightTime = $right->getTime()?->format('H:i') ?? '99:99';
+            $timeComparison = $leftTime <=> $rightTime;
+            if (0 !== $timeComparison) {
+                return $timeComparison;
+            }
+
+            return strcmp((string) $left->getTitle(), (string) $right->getTitle());
+        });
+
+        $rowsByDepartment = [];
+        foreach ($events as $event) {
+            $departmentTitle = $event->getDepartment()?->getTitle() ?? 'Без подразделения';
+            $rowsByDepartment[$departmentTitle][] = $event;
+        }
+
+        return $rowsByDepartment;
+    }
+
+    /**
      * @return array<string, string>
      */
     private function buildMonthOptions(): array
