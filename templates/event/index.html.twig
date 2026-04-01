@@ -7,11 +7,15 @@
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
             <h1 class="mb-0 h2">План мероприятий</h1>
-            {% if app.user and app.user.employee.department and not can_filter_events %}
+            {% if app.user and app.user.employee.department and not can_filter_departments %}
                 <p class="text-muted mb-0">{{ app.user.employee.department.title }}</p>
             {% endif %}
         </div>
         <div class="d-flex flex-wrap gap-2">
+            <a href="{{ path('app_event_export_pdf', app.request.query.all) }}" class="btn btn-outline-danger d-flex align-items-center">
+                <i class="bi bi-file-earmark-pdf"></i>
+                <span class="d-none d-sm-inline ms-2">Экспорт в PDF</span>
+            </a>
             {% if is_granted(Permissions.EVENT_ADMIN) %}
                 <a href="{{ path('app_event_export', app.request.query.all) }}" class="btn btn-outline-success d-flex align-items-center">
                     <i class="bi bi-file-earmark-excel"></i>
@@ -27,7 +31,7 @@
         </div>
     </div>
 
-    {% if can_filter_events %}
+    {% if can_filter_months %}
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body py-3 px-3 px-lg-4">
                 <form method="get" action="{{ path('app_event_index') }}" id="event-filters-form" class="d-flex flex-column flex-xl-row gap-2 gap-xl-3 align-items-stretch align-items-xl-center">
@@ -55,31 +59,33 @@
                         </div>
                     </div>
 
-                    <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                            Отделы
-                            <span class="text-muted ms-1">({{ selected_department_ids|length }})</span>
-                        </button>
-                        <div class="dropdown-menu p-3 shadow-sm" style="min-width: 320px; max-width: 360px;">
-                            <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
-                                <h2 class="h6 mb-0">Отделы</h2>
-                                <div class="d-flex gap-1">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-select-group="departments">Отметить все</button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-clear-group="departments">Снять все</button>
+                    {% if can_filter_departments %}
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                Отделы
+                                <span class="text-muted ms-1">({{ selected_department_ids|length }})</span>
+                            </button>
+                            <div class="dropdown-menu p-3 shadow-sm" style="min-width: 320px; max-width: 360px;">
+                                <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                                    <h2 class="h6 mb-0">Отделы</h2>
+                                    <div class="d-flex gap-1">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-select-group="departments">Отметить все</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-clear-group="departments">Снять все</button>
+                                    </div>
+                                </div>
+                                <div class="d-grid gap-1">
+                                    {% for department in department_options %}
+                                        <label class="form-check border rounded px-2 py-1 small w-100 bg-white">
+                                            <input class="form-check-input me-2" type="checkbox" name="departments[]" value="{{ department.id }}" {% if department.id in selected_department_ids %}checked{% endif %}>
+                                            <span class="form-check-label">{{ department.title }}</span>
+                                        </label>
+                                    {% endfor %}
                                 </div>
                             </div>
-                            <div class="d-grid gap-1">
-                                {% for department in department_options %}
-                                    <label class="form-check border rounded px-2 py-1 small w-100 bg-white">
-                                        <input class="form-check-input me-2" type="checkbox" name="departments[]" value="{{ department.id }}" {% if department.id in selected_department_ids %}checked{% endif %}>
-                                        <span class="form-check-label">{{ department.title }}</span>
-                                    </label>
-                                {% endfor %}
-                            </div>
                         </div>
-                    </div>
+                    {% endif %}
 
-                    <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center ms-xl-auto">
+                    <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center">
                         <a href="{{ path('app_event_index') }}" class="btn btn-outline-secondary" id="event-filters-reset">Сбросить</a>
                         <button type="submit" class="btn btn-primary">Применить</button>
                     </div>
@@ -88,7 +94,7 @@
         </div>
     {% endif %}
 
-    {% set showDepartmentMeta = can_filter_events %}
+    {% set showDepartmentMeta = can_filter_departments %}
 
     {% set noDateEvents = events|filter(e => e.date is null) %}
     {% if noDateEvents is not empty %}
@@ -195,7 +201,7 @@
 
 {% block javascripts %}
     {{ parent() }}
-    {% if can_filter_events %}
+    {% if can_filter_months %}
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 const storageKey = 'planner-event-filters-v1';
@@ -207,7 +213,9 @@
                 }
 
                 const url = new URL(window.location.href);
-                const hasFilterParams = url.searchParams.has('months[]') || url.searchParams.has('departments[]');
+                const hasMonthParams = url.searchParams.has('months[]');
+                const hasDepartmentParams = url.searchParams.has('departments[]');
+                const hasFilterParams = hasMonthParams || hasDepartmentParams;
 
                 if (!hasFilterParams) {
                     const saved = localStorage.getItem(storageKey);

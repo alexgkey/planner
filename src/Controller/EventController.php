@@ -5,12 +5,13 @@ namespace App\Controller;
 use App\Entity\Department;
 use App\Entity\Event;
 use App\Entity\Enum\EventStatus;
-use App\Entity\EventReport;
 use App\Form\EventType;
 use App\Repository\DepartmentRepository;
 use App\Repository\EventRepository;
 use App\Security\Permissions\AppPermissions;
 use Doctrine\ORM\EntityManagerInterface;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -45,6 +46,61 @@ class EventController extends AbstractController
 
         return new Response($content, Response::HTTP_OK, [
             'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => sprintf('attachment; filename="%s"', $filename),
+        ]);
+    }
+
+    #[Route('/export/pdf', name: 'app_event_export_pdf', methods: ['GET'])]
+    public function exportPdf(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository): Response
+    {
+        $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository);
+        $events = $listing['events'];
+
+        usort($events, function (Event $left, Event $right): int {
+            $leftDate = $left->getDate()?->format('Y-m-d') ?? '9999-12-31';
+            $rightDate = $right->getDate()?->format('Y-m-d') ?? '9999-12-31';
+            $dateComparison = $leftDate <=> $rightDate;
+            if (0 !== $dateComparison) {
+                return $dateComparison;
+            }
+
+            $leftTime = $left->getTime()?->format('H:i') ?? '99:99';
+            $rightTime = $right->getTime()?->format('H:i') ?? '99:99';
+            $timeComparison = $leftTime <=> $rightTime;
+            if (0 !== $timeComparison) {
+                return $timeComparison;
+            }
+
+            return strcmp((string) $left->getTitle(), (string) $right->getTitle());
+        });
+
+        $headerDepartment = $this->resolvePdfDepartmentLabel($listing['department_options'], $listing['selected_department_ids']);
+        $signatureDepartment = $this->resolvePdfSignatureDepartmentLabel($headerDepartment);
+        $periodLabel = $this->buildSelectedPeriodLabel($listing['month_options'], $listing['selected_months']);
+        $generatedAt = new \DateTimeImmutable();
+
+        $html = $this->renderView('event/export.pdf.twig', [
+            'events' => $events,
+            'header_department' => $headerDepartment,
+            'signature_department' => $signatureDepartment,
+            'period_label' => $periodLabel,
+            'generated_at' => $generatedAt,
+        ]);
+
+        $options = new Options();
+        $options->set('defaultFont', 'DejaVu Sans');
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', false);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $filename = sprintf('events-plan-%s.pdf', $generatedAt->format('Y-m-d-His'));
+
+        return new Response($dompdf->output(), Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
             'Content-Disposition' => sprintf('attachment; filename="%s"', $filename),
         ]);
     }
@@ -201,7 +257,8 @@ class EventController extends AbstractController
     /**
      * @return array{
      *     events: Event[],
-     *     can_filter_events: bool,
+     *     can_filter_months: bool,
+     *     can_filter_departments: bool,
      *     department_options: Department[],
      *     month_options: array<string, string>,
      *     selected_department_ids: int[],
@@ -214,43 +271,40 @@ class EventController extends AbstractController
         $department = $employee?->getDepartment();
         $canViewAny = $this->canViewAnyEvents();
 
-        $events = [];
+        $events = $canViewAny
+            ? $eventRepository->findActiveByDepartment()
+            : ($department ? $eventRepository->findActiveByDepartment($department) : []);
+
+        $monthOptions = $this->buildMonthOptions();
+        $defaultMonths = array_keys($monthOptions);
+        $selectedMonths = (array) $request->query->all('months');
+        $selectedMonths = array_values(array_intersect($selectedMonths, $defaultMonths));
+        if ([] === $selectedMonths) {
+            $selectedMonths = $defaultMonths;
+        }
+
         $departmentOptions = [];
-        $monthOptions = [];
         $selectedDepartmentIds = [];
-        $selectedMonths = [];
-
         if ($canViewAny) {
-            $events = $eventRepository->findActiveByDepartment();
             $departmentOptions = $departmentRepository->findActive();
-            $monthOptions = $this->buildMonthOptions();
-
             $defaultDepartmentIds = array_map(
                 static fn (Department $department): int => $department->getId(),
                 $departmentOptions
             );
-            $defaultMonths = array_keys($monthOptions);
 
             $selectedDepartmentIds = array_map('intval', (array) $request->query->all('departments'));
             $selectedDepartmentIds = array_values(array_intersect($selectedDepartmentIds, $defaultDepartmentIds));
             if ([] === $selectedDepartmentIds) {
                 $selectedDepartmentIds = $defaultDepartmentIds;
             }
-
-            $selectedMonths = (array) $request->query->all('months');
-            $selectedMonths = array_values(array_intersect($selectedMonths, $defaultMonths));
-            if ([] === $selectedMonths) {
-                $selectedMonths = $defaultMonths;
-            }
-
-            $events = $this->filterEvents($events, $selectedDepartmentIds, $selectedMonths);
-        } elseif ($department) {
-            $events = $eventRepository->findActiveByDepartment($department);
         }
+
+        $events = $this->filterEvents($events, $selectedDepartmentIds, $selectedMonths);
 
         return [
             'events' => $events,
-            'can_filter_events' => $canViewAny,
+            'can_filter_months' => true,
+            'can_filter_departments' => $canViewAny,
             'department_options' => $departmentOptions,
             'month_options' => $monthOptions,
             'selected_department_ids' => $selectedDepartmentIds,
@@ -267,17 +321,18 @@ class EventController extends AbstractController
     private function filterEvents(array $events, array $selectedDepartmentIds, array $selectedMonths): array
     {
         return array_values(array_filter($events, function (Event $event) use ($selectedDepartmentIds, $selectedMonths): bool {
-            $eventDepartmentId = $event->getDepartment()?->getId();
-            if (null !== $eventDepartmentId && !in_array($eventDepartmentId, $selectedDepartmentIds, true)) {
+            $eventDate = $event->getDate();
+            if (null !== $eventDate && !in_array($eventDate->format('Y-m'), $selectedMonths, true)) {
                 return false;
             }
 
-            $eventDate = $event->getDate();
-            if (null === $eventDate) {
+            if ([] === $selectedDepartmentIds) {
                 return true;
             }
 
-            return in_array($eventDate->format('Y-m'), $selectedMonths, true);
+            $eventDepartmentId = $event->getDepartment()?->getId();
+
+            return null === $eventDepartmentId || in_array($eventDepartmentId, $selectedDepartmentIds, true);
         }));
     }
 
@@ -327,6 +382,64 @@ class EventController extends AbstractController
         }
 
         return $rowsByDepartment;
+    }
+
+    /**
+     * @param Department[] $departmentOptions
+     * @param int[] $selectedDepartmentIds
+     */
+    private function resolvePdfDepartmentLabel(array $departmentOptions, array $selectedDepartmentIds): string
+    {
+        if ([] === $selectedDepartmentIds) {
+            return $this->getUser()?->getEmployee()?->getDepartment()?->getTitle() ?? 'Все подразделения';
+        }
+
+        $selectedDepartments = array_values(array_filter(
+            $departmentOptions,
+            static fn (Department $department): bool => in_array($department->getId(), $selectedDepartmentIds, true)
+        ));
+
+        if (1 === count($selectedDepartments)) {
+            return $selectedDepartments[0]->getTitle() ?? 'Подразделение';
+        }
+
+        return 'Все подразделения';
+    }
+
+    private function resolvePdfSignatureDepartmentLabel(string $headerDepartment): string
+    {
+        return 'Все подразделения' === $headerDepartment ? '' : $headerDepartment;
+    }
+
+    /**
+     * @param array<string, string> $monthOptions
+     * @param string[] $selectedMonths
+     */
+    private function buildSelectedPeriodLabel(array $monthOptions, array $selectedMonths): string
+    {
+        if ([] === $selectedMonths) {
+            return 'не выбран';
+        }
+
+        if (1 === count($selectedMonths)) {
+            return $this->formatMonthLabel($selectedMonths[0]);
+        }
+
+        $sortedMonths = $selectedMonths;
+        sort($sortedMonths);
+
+        return sprintf(
+            'с %s по %s',
+            $this->formatMonthLabel($sortedMonths[0]),
+            $this->formatMonthLabel($sortedMonths[array_key_last($sortedMonths)])
+        );
+    }
+
+    private function formatMonthLabel(string $monthValue): string
+    {
+        return ((new \DateTimeImmutable($monthValue . '-01'))->format('Y-m-d'))
+            ? ((new \DateTimeImmutable($monthValue . '-01'))->format('d.m.Y'))
+            : $monthValue;
     }
 
     /**

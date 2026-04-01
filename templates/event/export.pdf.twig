@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 16mm 12mm 16mm 12mm;
+        }
+
+        body {
+            font-family: DejaVu Sans, sans-serif;
+            font-size: 11px;
+            color: #111;
+        }
+
+        .export-date {
+            text-align: right;
+            font-size: 9px;
+            color: #555;
+            margin-bottom: 6px;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 1.35;
+            margin-bottom: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        th, td {
+            border: 1px solid #444;
+            padding: 4px 5px;
+            vertical-align: top;
+            word-wrap: break-word;
+        }
+
+        th {
+            text-align: center;
+            font-size: 10px;
+            background: #efefef;
+        }
+
+        td.center {
+            text-align: center;
+        }
+
+        .signature {
+            margin-top: 18mm;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .signature td {
+            border: none;
+            padding: 0;
+            font-size: 11px;
+        }
+
+        .line {
+            border-bottom: 1px solid #111;
+            height: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="export-date">Дата экспорта: {{ generated_at|date('d.m.Y H:i') }}</div>
+
+    <div class="title">
+        План мероприятий {{ header_department }}<br>
+        (Структурное подразделение МУК &quot;Центр культуры Усть-Илимского муниципального округа&quot;)<br>
+        на период {{ period_label }}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 4%;">№ п/п</th>
+                <th style="width: 18%;">Форма и название мероприятия</th>
+                <th style="width: 12%;">Направление</th>
+                <th style="width: 8%;">Дата проведения</th>
+                <th style="width: 7%;">Время проведения</th>
+                <th style="width: 13%;">Место проведения</th>
+                <th style="width: 8%;">Формат мероприятия</th>
+                <th style="width: 9%;">Целевая аудитория</th>
+                <th style="width: 8%;">Доступность</th>
+                <th style="width: 6%;">План посетителей</th>
+                <th style="width: 7%;">Ответственный</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for event in events %}
+                <tr>
+                    <td class="center">{{ loop.index }}</td>
+                    <td>{{ event.title }}</td>
+                    <td>{{ event.eventDirection ? event.eventDirection.label : '' }}</td>
+                    <td class="center">{{ event.date ? event.date|date('d.m.Y') : '' }}</td>
+                    <td class="center">{{ event.time ? event.time|date('H:i') : '' }}</td>
+                    <td>{{ event.venue ?: '' }}</td>
+                    <td class="center">{{ event.onOffLine ? event.onOffLine.label : '' }}</td>
+                    <td class="center">{{ event.targetAudience ? event.targetAudience.label : '' }}</td>
+                    <td class="center">{{ event.eventAccessibility ? event.eventAccessibility.label : '' }}</td>
+                    <td class="center">{{ event.plannedVisitors ?? '' }}</td>
+                    <td>{{ event.responsible ?: '' }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="11" class="center">По выбранному периоду мероприятий не найдено.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <table class="signature">
+        <tr>
+            <td style="width: 32%;">Заведующий {{ signature_department }}</td>
+            <td style="width: 28%;"><div class="line"></div></td>
+            <td style="width: 20%; text-align: center;">Расшифровка</td>
+            <td style="width: 20%; text-align: right;">Дата __________</td>
+        </tr>
+    </table>
+</body>
+</html>
