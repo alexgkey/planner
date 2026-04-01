@@ -35,7 +35,7 @@ class EventController extends AbstractController
     public function export(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository): Response
     {
         $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository);
-        $rowsByDepartment = $this->groupEventsForExport($listing['events']);
+        $rowsByDepartment = $this->groupEventsForExport($this->filterExportableEvents($listing['events']));
 
         $content = $this->renderView('event/export.xls.twig', [
             'rows_by_department' => $rowsByDepartment,
@@ -54,7 +54,7 @@ class EventController extends AbstractController
     public function exportPdf(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository): Response
     {
         $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository);
-        $events = $listing['events'];
+        $events = $this->filterExportableEvents($listing['events']);
 
         usort($events, function (Event $left, Event $right): int {
             $leftDate = $left->getDate()?->format('Y-m-d') ?? '9999-12-31';
@@ -411,6 +411,18 @@ class EventController extends AbstractController
         return 'Все подразделения' === $headerDepartment ? '' : $headerDepartment;
     }
 
+
+    /**
+     * @param Event[] $events
+     * @return Event[]
+     */
+    private function filterExportableEvents(array $events): array
+    {
+        return array_values(array_filter($events, static function (Event $event): bool {
+            return $event->isActive() && EventStatus::CANCELLED !== $event->getStatus();
+        }));
+    }
+
     /**
      * @param array<string, string> $monthOptions
      * @param string[] $selectedMonths
@@ -429,7 +441,7 @@ class EventController extends AbstractController
         sort($sortedMonths);
 
         return sprintf(
-            'с %s по %s',
+            '%s - %s',
             $this->formatMonthLabel($sortedMonths[0]),
             $this->formatMonthLabel($sortedMonths[array_key_last($sortedMonths)])
         );
@@ -437,9 +449,30 @@ class EventController extends AbstractController
 
     private function formatMonthLabel(string $monthValue): string
     {
-        return ((new \DateTimeImmutable($monthValue . '-01'))->format('Y-m-d'))
-            ? ((new \DateTimeImmutable($monthValue . '-01'))->format('d.m.Y'))
-            : $monthValue;
+        try {
+            $date = new \DateTimeImmutable($monthValue . '-01');
+        } catch (\Exception) {
+            return $monthValue;
+        }
+
+        $months = [
+            1 => 'январь',
+            2 => 'февраль',
+            3 => 'март',
+            4 => 'апрель',
+            5 => 'май',
+            6 => 'июнь',
+            7 => 'июль',
+            8 => 'август',
+            9 => 'сентябрь',
+            10 => 'октябрь',
+            11 => 'ноябрь',
+            12 => 'декабрь',
+        ];
+
+        $monthNumber = (int) $date->format('n');
+
+        return sprintf('%s %s', $months[$monthNumber] ?? $monthValue, $date->format('Y'));
     }
 
     /**
