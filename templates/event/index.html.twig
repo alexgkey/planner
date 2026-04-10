@@ -2,8 +2,47 @@
 
 {% block title %}План мероприятий{% endblock %}
 
+{% block sidebar_extra %}
+    {% if can_filter_months %}
+        <hr class="my-4">
+        <div class="sidebar-section-title">Фильтры</div>
+{#        <div class="card mb-4">#}
+{#            <div class="card-body p-3">#}
+                {% include 'event/_filters.html.twig' with {
+                    filter_action: path('app_event_index'),
+                    filter_reset_path: path('app_event_index'),
+                    filter_form_id: 'event-filters-form'
+                } %}
+{#            </div>#}
+{#        </div>#}
+        <hr class="my-4">
+
+        <div class="sidebar-section-title">Действия</div>
+{#        <div class="card">#}
+{#            <div class="card-body p-3 d-grid gap-2">#}
+                <a href="{{ path('app_event_export_pdf', app.request.query.all) }}" class="nav-link">
+                    <i class="bi bi-file-earmark-pdf me-2"></i>Распечатать План
+                </a>
+                <a href="{{ path('app_event_export_reports_pdf', app.request.query.all) }}" class="nav-link">
+                    <i class="bi bi-file-earmark-text me-2"></i>Распечатать Отчеты
+                </a>
+                {% if is_granted(Permissions.EVENT_ADMIN) %}
+                    <a href="{{ path('app_event_export', app.request.query.all) }}" class="nav-link">
+                        <i class="bi bi-file-earmark-excel me-2"></i>Экспорт в Excel
+                    </a>
+                {% endif %}
+                <hr class="my-4">
+                {% if is_granted(Permissions.EVENT_MANAGE_OWN) or is_granted(Permissions.EVENT_MANAGE_ANY) or is_granted(Permissions.EVENT_ADMIN) %}
+                    <a href="{{ path('app_event_new') }}" class="btn btn-primary d-flex align-items-center justify-content-center">
+                        <i class="bi bi-plus-lg me-2"></i>Новое мероприятие
+                    </a>
+                {% endif %}
+{#            </div>#}
+{#        </div>#}
+    {% endif %}
+{% endblock %}
+
 {% block body %}
-<div class="container-fluid py-5 px-lg-5">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
             <h1 class="mb-0 h2">План мероприятий</h1>
@@ -11,95 +50,14 @@
                 <p class="text-muted mb-0">{{ app.user.employee.department.title }}</p>
             {% endif %}
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{{ path('app_event_export_pdf', app.request.query.all) }}" class="btn btn-outline-danger d-flex align-items-center">
-                <i class="bi bi-file-earmark-pdf"></i>
-                <span class="d-none d-sm-inline ms-2">Экспорт в PDF</span>
-            </a>
-            {% if is_granted(Permissions.EVENT_ADMIN) %}
-                <a href="{{ path('app_event_export', app.request.query.all) }}" class="btn btn-outline-success d-flex align-items-center">
-                    <i class="bi bi-file-earmark-excel"></i>
-                    <span class="d-none d-sm-inline ms-2">Экспорт в Excel</span>
-                </a>
-            {% endif %}
-            {% if is_granted(Permissions.EVENT_MANAGE_OWN) or is_granted(Permissions.EVENT_MANAGE_ANY) or is_granted(Permissions.EVENT_ADMIN) %}
-                <a href="{{ path('app_event_new') }}" class="btn btn-primary d-flex align-items-center">
-                    <i class="bi-plus-lg"></i>
-                    <span class="d-none d-sm-inline ms-2">Новое мероприятие</span>
-                </a>
-            {% endif %}
-        </div>
     </div>
-
-    {% if can_filter_months %}
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-body py-3 px-3 px-lg-4">
-                <form method="get" action="{{ path('app_event_index') }}" id="event-filters-form" class="d-flex flex-column flex-xl-row gap-2 gap-xl-3 align-items-stretch align-items-xl-center">
-                    <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                            Месяцы
-                            <span class="text-muted ms-1">({{ selected_months|length }})</span>
-                        </button>
-                        <div class="dropdown-menu p-3 shadow-sm" style="min-width: 320px; max-width: 360px;">
-                            <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
-                                <h2 class="h6 mb-0">Месяцы</h2>
-                                <div class="d-flex gap-1">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-select-group="months">Отметить все</button>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-clear-group="months">Снять все</button>
-                                </div>
-                            </div>
-                            <div class="d-grid gap-1">
-                                {% for month_value, month_label in month_options %}
-                                    <label class="form-check border rounded px-2 py-1 small w-100 bg-white">
-                                        <input class="form-check-input me-2" type="checkbox" name="months[]" value="{{ month_value }}" {% if month_value in selected_months %}checked{% endif %}>
-                                        <span class="form-check-label">{{ ((month_value ~ '-01')|date('Y-m-d'))|format_datetime(locale='ru', pattern='LLLL yyyy')|capitalize }}</span>
-                                    </label>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-
-                    {% if can_filter_departments %}
-                        <div class="dropdown">
-                            <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                Отделы
-                                <span class="text-muted ms-1">({{ selected_department_ids|length }})</span>
-                            </button>
-                            <div class="dropdown-menu p-3 shadow-sm" style="min-width: 320px; max-width: 360px;">
-                                <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
-                                    <h2 class="h6 mb-0">Отделы</h2>
-                                    <div class="d-flex gap-1">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-select-group="departments">Отметить все</button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-clear-group="departments">Снять все</button>
-                                    </div>
-                                </div>
-                                <div class="d-grid gap-1">
-                                    {% for department in department_options %}
-                                        <label class="form-check border rounded px-2 py-1 small w-100 bg-white">
-                                            <input class="form-check-input me-2" type="checkbox" name="departments[]" value="{{ department.id }}" {% if department.id in selected_department_ids %}checked{% endif %}>
-                                            <span class="form-check-label">{{ department.title }}</span>
-                                        </label>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    {% endif %}
-
-                    <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center">
-                        <a href="{{ path('app_event_index') }}" class="btn btn-outline-secondary" id="event-filters-reset">Сбросить</a>
-                        <button type="submit" class="btn btn-primary">Применить</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    {% endif %}
 
     {% set showDepartmentMeta = can_filter_departments %}
 
     {% set noDateEvents = events|filter(e => e.date is null) %}
     {% if noDateEvents is not empty %}
         <h4 class="text-muted mb-3">Без даты</h4>
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 row-cols-xxl-5 g-3 mb-5">
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-4 g-3 mb-5">
             {% for event in noDateEvents %}
                 <div class="col">{{ block('event_card') }}</div>
             {% endfor %}
@@ -115,7 +73,7 @@
         {% if month != currentMonth %}
             {% if not loop.first %}</div>{% endif %}
             <h4 class="text-muted mb-3 {% if noDateEvents is not empty or currentMonth is not null %}mt-4{% endif %}">{{ month }}</h4>
-            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-4 row-cols-xxl-5 g-3">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-4 g-3">
             {% set currentMonth = month %}
         {% endif %}
 
@@ -132,7 +90,6 @@
             {% endif %}
         </div>
     {% endif %}
-</div>
 {% endblock %}
 
 {% block event_card %}
@@ -215,7 +172,8 @@
                 const url = new URL(window.location.href);
                 const hasMonthParams = url.searchParams.has('months[]');
                 const hasDepartmentParams = url.searchParams.has('departments[]');
-                const hasFilterParams = hasMonthParams || hasDepartmentParams;
+                const hasUndatedParam = url.searchParams.has('include_undated');
+                const hasFilterParams = hasMonthParams || hasDepartmentParams || hasUndatedParam;
 
                 if (!hasFilterParams) {
                     const saved = localStorage.getItem(storageKey);
@@ -225,6 +183,7 @@
                             const redirectUrl = new URL(window.location.href);
                             (parsed.months || []).forEach(month => redirectUrl.searchParams.append('months[]', month));
                             (parsed.departments || []).forEach(department => redirectUrl.searchParams.append('departments[]', department));
+                            redirectUrl.searchParams.set('include_undated', parsed.includeUndated ?? '1');
 
                             if (redirectUrl.search) {
                                 window.location.replace(redirectUrl.toString());
@@ -240,6 +199,7 @@
                     const payload = {
                         months: Array.from(form.querySelectorAll('input[name="months[]"]:checked')).map(input => input.value),
                         departments: Array.from(form.querySelectorAll('input[name="departments[]"]:checked')).map(input => input.value),
+                        includeUndated: form.querySelector("select[name='include_undated']")?.value ?? '1',
                     };
                     localStorage.setItem(storageKey, JSON.stringify(payload));
                 });

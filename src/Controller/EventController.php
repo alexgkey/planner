@@ -55,24 +55,7 @@ class EventController extends AbstractController
     {
         $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository);
         $events = $this->filterExportableEvents($listing['events']);
-
-        usort($events, function (Event $left, Event $right): int {
-            $leftDate = $left->getDate()?->format('Y-m-d') ?? '9999-12-31';
-            $rightDate = $right->getDate()?->format('Y-m-d') ?? '9999-12-31';
-            $dateComparison = $leftDate <=> $rightDate;
-            if (0 !== $dateComparison) {
-                return $dateComparison;
-            }
-
-            $leftTime = $left->getTime()?->format('H:i') ?? '99:99';
-            $rightTime = $right->getTime()?->format('H:i') ?? '99:99';
-            $timeComparison = $leftTime <=> $rightTime;
-            if (0 !== $timeComparison) {
-                return $timeComparison;
-            }
-
-            return strcmp((string) $left->getTitle(), (string) $right->getTitle());
-        });
+        $this->sortEventsForPdfExport($events);
 
         $headerDepartment = $this->resolvePdfDepartmentLabel($listing['department_options'], $listing['selected_department_ids']);
         $signatureDepartment = $this->resolvePdfSignatureDepartmentLabel($headerDepartment);
@@ -98,6 +81,44 @@ class EventController extends AbstractController
         $dompdf->render();
 
         $filename = sprintf('events-plan-%s.pdf', $generatedAt->format('Y-m-d-His'));
+
+        return new Response($dompdf->output(), Response::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('attachment; filename="%s"', $filename),
+        ]);
+    }
+
+    #[Route('/export/reports/pdf', name: 'app_event_export_reports_pdf', methods: ['GET'])]
+    public function exportReportsPdf(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository): Response
+    {
+        $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository);
+        $events = $this->filterExportableEvents($listing['events']);
+        $this->sortEventsForPdfExport($events);
+
+        $headerDepartment = $this->resolvePdfDepartmentLabel($listing['department_options'], $listing['selected_department_ids']);
+        $signatureDepartment = $this->resolvePdfSignatureDepartmentLabel($headerDepartment);
+        $periodLabel = $this->buildSelectedPeriodLabel($listing['month_options'], $listing['selected_months']);
+        $generatedAt = new \DateTimeImmutable();
+
+        $html = $this->renderView('event/export_reports.pdf.twig', [
+            'events' => $events,
+            'header_department' => $headerDepartment,
+            'signature_department' => $signatureDepartment,
+            'period_label' => $periodLabel,
+            'generated_at' => $generatedAt,
+        ]);
+
+        $options = new Options();
+        $options->set('defaultFont', 'DejaVu Sans');
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', false);
+
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        $filename = sprintf('events-reports-%s.pdf', $generatedAt->format('Y-m-d-His'));
 
         return new Response($dompdf->output(), Response::HTTP_OK, [
             'Content-Type' => 'application/pdf',
@@ -262,7 +283,8 @@ class EventController extends AbstractController
      *     department_options: Department[],
      *     month_options: array<string, string>,
      *     selected_department_ids: int[],
-     *     selected_months: string[]
+     *     selected_months: string[],
+     *     include_undated: bool
      * }
      */
     private function resolveEventListing(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository): array
@@ -299,7 +321,16 @@ class EventController extends AbstractController
             }
         }
 
-        $events = $this->filterEvents($events, $selectedDepartmentIds, $selectedMonths);
+        $includeUndated = filter_var(
+            $request->query->get('include_undated', '1'),
+            FILTER_VALIDATE_BOOL,
+            FILTER_NULL_ON_FAILURE
+        );
+        if (null === $includeUndated) {
+            $includeUndated = true;
+        }
+
+        $events = $this->filterEvents($events, $selectedDepartmentIds, $selectedMonths, $includeUndated);
 
         return [
             'events' => $events,
@@ -309,6 +340,7 @@ class EventController extends AbstractController
             'month_options' => $monthOptions,
             'selected_department_ids' => $selectedDepartmentIds,
             'selected_months' => $selectedMonths,
+            'include_undated' => $includeUndated,
         ];
     }
 
@@ -316,12 +348,17 @@ class EventController extends AbstractController
      * @param Event[] $events
      * @param int[] $selectedDepartmentIds
      * @param string[] $selectedMonths
+     * @param bool $includeUndated
      * @return Event[]
      */
-    private function filterEvents(array $events, array $selectedDepartmentIds, array $selectedMonths): array
+    private function filterEvents(array $events, array $selectedDepartmentIds, array $selectedMonths, bool $includeUndated): array
     {
-        return array_values(array_filter($events, function (Event $event) use ($selectedDepartmentIds, $selectedMonths): bool {
+        return array_values(array_filter($events, function (Event $event) use ($selectedDepartmentIds, $selectedMonths, $includeUndated): bool {
             $eventDate = $event->getDate();
+            if (null === $eventDate) {
+                return $includeUndated;
+            }
+
             if (null !== $eventDate && !in_array($eventDate->format('Y-m'), $selectedMonths, true)) {
                 return false;
             }
@@ -382,6 +419,30 @@ class EventController extends AbstractController
         }
 
         return $rowsByDepartment;
+    }
+
+    /**
+     * @param Event[] $events
+     */
+    private function sortEventsForPdfExport(array &$events): void
+    {
+        usort($events, function (Event $left, Event $right): int {
+            $leftDate = $left->getDate()?->format('Y-m-d') ?? '9999-12-31';
+            $rightDate = $right->getDate()?->format('Y-m-d') ?? '9999-12-31';
+            $dateComparison = $leftDate <=> $rightDate;
+            if (0 !== $dateComparison) {
+                return $dateComparison;
+            }
+
+            $leftTime = $left->getTime()?->format('H:i') ?? '99:99';
+            $rightTime = $right->getTime()?->format('H:i') ?? '99:99';
+            $timeComparison = $leftTime <=> $rightTime;
+            if (0 !== $timeComparison) {
+                return $timeComparison;
+            }
+
+            return strcmp((string) $left->getTitle(), (string) $right->getTitle());
+        });
     }
 
     /**
