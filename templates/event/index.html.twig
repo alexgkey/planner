@@ -43,12 +43,34 @@
 {% endblock %}
 
 {% block body %}
+    {% set totalEvents = events|length %}
+    {% set completedEvents = events|filter(e => e.status.value == 'completed')|length %}
+    {% set reportedEvents = events|filter(e => e.report is not null)|length %}
+    {% set completedPercent = totalEvents > 0 ? ((completedEvents / totalEvents) * 100)|round : 0 %}
+    {% set reportedPercent = totalEvents > 0 ? ((reportedEvents / totalEvents) * 100)|round : 0 %}
+
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
             <h1 class="mb-0 h2">План мероприятий</h1>
             {% if app.user and app.user.employee.department and not can_filter_departments %}
                 <p class="text-muted mb-0">{{ app.user.employee.department.title }}</p>
             {% endif %}
+        </div>
+    </div>
+    <div class="d-flex flex-wrap justify-content-start gap-3 mb-4">
+        <div class="bg-white border rounded-3 shadow-sm px-4 py-3">
+            <div class="text-muted small text-uppercase">Всего</div>
+            <div class="fs-4 fw-semibold">{{ totalEvents }}</div>
+        </div>
+        <div class="bg-white border rounded-3 shadow-sm px-4 py-3">
+            <div class="text-muted small text-uppercase">Проведено</div>
+            <div class="fs-4 fw-semibold">{{ completedEvents }}</div>
+            <div class="small text-muted">{{ completedPercent }}%</div>
+        </div>
+        <div class="bg-white border rounded-3 shadow-sm px-4 py-3">
+            <div class="text-muted small text-uppercase">Отчеты</div>
+            <div class="fs-4 fw-semibold">{{ reportedEvents }}</div>
+            <div class="small text-muted">{{ reportedPercent }}%</div>
         </div>
     </div>
 
