@@ -57,7 +57,7 @@
     {% set noDateEvents = events|filter(e => e.date is null) %}
     {% if noDateEvents is not empty %}
         <h4 class="text-muted mb-3">Без даты</h4>
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-4 g-3 mb-5">
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 row-cols-xxl-6 g-3 mb-5">
             {% for event in noDateEvents %}
                 <div class="col">{{ block('event_card') }}</div>
             {% endfor %}
@@ -73,7 +73,7 @@
         {% if month != currentMonth %}
             {% if not loop.first %}</div>{% endif %}
             <h4 class="text-muted mb-3 {% if noDateEvents is not empty or currentMonth is not null %}mt-4{% endif %}">{{ month }}</h4>
-            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-4 g-3">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 row-cols-xxl-6 g-3">
             {% set currentMonth = month %}
         {% endif %}
 
@@ -95,61 +95,62 @@
 {% block event_card %}
 {% set is_cancelled = event.status.value == 'cancelled' %}
 {% set is_completed = event.status.value == 'completed' %}
-{% set departmentColor = event.department and event.department.color ? event.department.color : '#dee2e6' %}
+{% set departmentColor = event.department and event.department.color ? event.department.color : '#6c757d' %}
 
 <a
     href="{{ path('app_event_show', {'id': event.id}) }}"
-    class="card h-100 text-decoration-none text-body shadow-sm {% if is_cancelled %}opacity-50{% endif %}"
-    style="border: 2px solid {{ departmentColor }};"
+    class="card h-100 text-decoration-none text-body shadow-sm position-relative overflow-hidden {% if is_cancelled %}opacity-50{% endif %}"
 >
-    <div class="card-body p-3 d-flex flex-column">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-            <h6 class="card-title mb-0 me-2 {% if is_cancelled %}text-decoration-line-through{% endif %}">{{ event.title }}</h6>
-            <div class="text-end text-nowrap">
-                {% if is_cancelled %}
-                    <span class="badge bg-danger" title="Отменено"><i class="bi bi-x-lg"></i></span>
-                {% elseif is_completed %}
-                    <span class="badge bg-success" title="Проведено"><i class="bi bi-check-circle-fill"></i></span>
-                {% elseif event.report is not null %}
-                    <span class="badge bg-info" title="Отчет заполнен"><i class="bi bi-file-text-fill"></i></span>
-                {% endif %}
+    {% if event.date %}
+        <div class="position-absolute top-0 end-0 text-center bg-light border-start border-bottom px-2 py-2" style="width: 4.75rem;">
+            <div class="fw-bold lh-1" style="font-size: 1.25rem; color: #45a9b1">{{ event.date|date('d') }}</div>
+            <div class="small text-muted text-uppercase lh-1 mt-1">{{ event.date|format_datetime(locale='ru', pattern='MMM') }}</div>
+            {% if event.time %}
+                <div class="small text-body fw-semibold mt-2 lh-1">{{ event.time|date('H:i') }}</div>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="position-absolute top-0 end-0 text-center bg-light border-start border-bottom px-2 py-2" style="width: 4.75rem;">
+            <div class="fw-bold text-secondary lh-1" style="font-size: 1.25rem;">?</div>
+        </div>
+    {% endif %}
 
-                {% if event.date %}
-                    <span class="fw-bold text-primary ms-2">{{ event.date|date('d') }}</span>
-                    <span class="small text-muted text-uppercase">{{ event.date|format_datetime(locale='ru', pattern='MMM') }}</span>
-                    {% if event.time %}
-                        <div class="small text-muted">{{ event.time|date('H:i') }}</div>
-                    {% endif %}
-                {% else %}
-                    <span class="badge bg-secondary">?</span>
-                {% endif %}
-            </div>
+    <div class="card-body p-3 pe-5 d-flex flex-column">
+        <div class="mb-2 pe-4">
+            <h6 class="card-title mb-0 me-2 {% if is_cancelled %}text-decoration-line-through{% endif %}">{{ event.title }}</h6>
+            {% if is_completed %}
+                <div class="small text-success mt-2">
+                    <i class="bi bi-check-circle-fill me-1"></i>Проведено
+                </div>
+            {% endif %}
         </div>
 
-        {% if showDepartmentMeta and event.department %}
-            <div class="mb-2">
-                <span class="badge text-bg-light border" style="border-color: {{ departmentColor }} !important; color: {{ departmentColor }};">
-                    {{ event.department.title }}
-                </span>
-            </div>
+        {% if is_granted(Permissions.EVENT_ADMIN) and event.report is null and event.reportReminderSentCount > 0 %}
+            <p class="card-text small text-muted mb-0 mt-auto">
+                Напоминания: {{ event.reportReminderSentCount }}
+                <br><span>Последнее: {{ event.reportReminderLastSentAt ? event.reportReminderLastSentAt|date('d.m.Y H:i') : 'неизвестно' }}</span>
+            </p>
         {% endif %}
 
-        <div class="mt-auto pt-2">
-            {% if event.venue %}
-                <p class="card-text text-muted small mb-1">
-                    <small>{{ event.venue }}</small>
-                </p>
+        {% if event.note %}
+            <p class="card-text small text-muted mt-3 mb-0" style="font-size: 0.8em; line-height: 1.2;">
+                {{ event.note|slice(0, 80) }}{% if event.note|length > 80 %}...{% endif %}
+            </p>
+        {% endif %}
+
+        <div class="mt-auto pt-3 d-flex justify-content-between align-items-end gap-2">
+            {% if showDepartmentMeta and event.department %}
+                <span class="badge text-white" style="background-color: {{ departmentColor }};">
+                    {{ event.department.title }}
+                </span>
+            {% else %}
+                <span></span>
             {% endif %}
-            {% if is_granted(Permissions.EVENT_ADMIN) and event.report is null and event.reportReminderSentCount > 0 %}
-                <p class="card-text small text-muted mb-1">
-                    Напоминания: {{ event.reportReminderSentCount }}
-                    <br><span>Последнее: {{ event.reportReminderLastSentAt ? event.reportReminderLastSentAt|date('d.m.Y H:i') : 'неизвестно' }}</span>
-                </p>
-            {% endif %}
-            {% if event.note %}
-                <p class="card-text small text-muted" style="font-size: 0.8em; line-height: 1.2;">
-                    {{ event.note|slice(0, 80) }}{% if event.note|length > 80 %}...{% endif %}
-                </p>
+
+            {% if event.report is not null %}
+                <span class="fs-5 ms-auto" style="color: #45a9b1" title="Отчет заполнен">
+                    <i class="bi bi-journal-bookmark-fill"></i>
+                </span>
             {% endif %}
         </div>
     </div>

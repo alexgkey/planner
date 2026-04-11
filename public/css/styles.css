@@ -54,9 +54,9 @@ body {
 }
 
 .event-date {
-    width: 40px;
-    font-weight: 600;
-    color: #0d6efd;
+    /*width: 40px;*/
+    /*font-weight: 600;*/
+    color: #c7e7df;
 }
 
 .event-title {
