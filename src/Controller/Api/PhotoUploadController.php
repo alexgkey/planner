@@ -3,12 +3,12 @@
 namespace App\Controller\Api;
 
 use App\Entity\Photo;
+use App\Security\Voter\EventVoter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/api/photos')]
 class PhotoUploadController extends AbstractController
@@ -52,12 +52,10 @@ class PhotoUploadController extends AbstractController
     }
 
     #[Route('/{id}', name: 'api_photo_delete', methods: ['DELETE'])]
-    #[IsGranted('ROLE_DIR')]
     public function delete(Photo $photo, EntityManagerInterface $entityManager): Response
     {
-        // Простая проверка прав: пользователь должен быть создателем отчета или админом
-        $reportCreator = $photo->getReport()->getCreator();
-        if ($this->getUser() !== $reportCreator && !$this->isGranted('ROLE_ADMIN')) {
+        $event = $photo->getReport()?->getEvent();
+        if (null === $event || !$this->isGranted(EventVoter::ADD_REPORT, $event)) {
             return new Response('Access Denied', Response::HTTP_FORBIDDEN);
         }
 
