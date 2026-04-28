@@ -8,7 +8,6 @@ use App\Entity\Enum\EventStatus;
 use App\Entity\Photo;
 use App\Form\EventReportType;
 use App\Security\Voter\EventVoter;
-use App\Service\EventReportPublicationManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Filesystem\Filesystem;
@@ -30,7 +29,6 @@ class EventReportController extends AbstractController
         Request $request,
         EntityManagerInterface $entityManager,
         SluggerInterface $slugger,
-        EventReportPublicationManager $publicationManager,
         string $kernelProjectDir,
     ): Response {
         $this->denyAccessUnlessGranted(EventVoter::ADD_REPORT, $event);
@@ -81,7 +79,6 @@ class EventReportController extends AbstractController
 
             $entityManager->persist($report);
             $entityManager->persist($event);
-            $publicationManager->syncAllPublications($report, $this->getUser());
             $entityManager->flush();
 
             $this->addFlash('success', 'Отчет успешно сохранен. Статус мероприятия обновлен на "Проведено".');

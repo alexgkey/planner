@@ -54,9 +54,6 @@ class EventReport
     #[ORM\OneToMany(mappedBy: 'report', targetEntity: Photo::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $photos;
 
-    #[ORM\OneToMany(mappedBy: 'eventReport', targetEntity: EventReportPublication::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
-    private Collection $publications;
-
     #[ORM\Column(type: Types::SMALLINT, nullable: true)]
     private ?int $visitorsCount = null;
 
@@ -102,7 +99,6 @@ class EventReport
     public function __construct()
     {
         $this->photos = new ArrayCollection();
-        $this->publications = new ArrayCollection();
     }
 
     #[ORM\PrePersist]
@@ -251,35 +247,6 @@ class EventReport
         if ($this->photos->removeElement($photo)) {
             if ($photo->getReport() === $this) {
                 $photo->setReport(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, EventReportPublication>
-     */
-    public function getPublications(): Collection
-    {
-        return $this->publications;
-    }
-
-    public function addPublication(EventReportPublication $publication): static
-    {
-        if (!$this->publications->contains($publication)) {
-            $this->publications->add($publication);
-            $publication->setEventReport($this);
-        }
-
-        return $this;
-    }
-
-    public function removePublication(EventReportPublication $publication): static
-    {
-        if ($this->publications->removeElement($publication)) {
-            if ($publication->getEventReport() === $this) {
-                $publication->setEventReport(null);
             }
         }
 

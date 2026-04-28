@@ -49,10 +49,6 @@ class UserType extends AbstractType
                         'Мероприятия: управление всеми отделами' => AppPermissions::EVENT_MANAGE_ANY,
                         'Мероприятия: администрирование' => AppPermissions::EVENT_ADMIN,
                     ],
-                    'Публикация отчетов' => [
-                        'Публикации отчетов: просмотр' => AppPermissions::EVENT_REPORT_VIEW,
-                        'Публикации отчетов: управление' => AppPermissions::EVENT_REPORT_MANAGE,
-                    ],
                     'Подразделения' => [
                         'Подразделения: просмотр' => AppPermissions::DEPARTMENT_VIEW,
                         'Подразделения: управление своим отделом' => AppPermissions::DEPARTMENT_MANAGE_OWN,

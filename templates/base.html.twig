@@ -15,7 +15,7 @@
                 }
 
                 .sidebar {
-                    min-height: calc(100vh - 48px);
+                    align-self: flex-start;
                 }
 
                 .sidebar .nav-link {
@@ -49,9 +49,40 @@
                     box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
                 }
 
+                @media (min-width: 768px) {
+                    .sidebar {
+                        position: fixed;
+                        top: 48px;
+                        bottom: 0;
+                        left: 0;
+                        z-index: 100;
+                        overflow-y: auto;
+                    }
+
+                    .app-main {
+                        margin-left: 25%;
+                        width: 75%;
+                    }
+                }
+
+                @media (min-width: 992px) {
+                    .app-main {
+                        margin-left: 16.66666667%;
+                        width: 83.33333333%;
+                    }
+                }
+
                 @media (max-width: 767.98px) {
                     .sidebar {
-                        min-height: auto;
+                        position: static;
+                        top: auto;
+                        bottom: auto;
+                        overflow-y: visible;
+                    }
+
+                    .app-main {
+                        margin-left: 0;
+                        width: 100%;
                     }
                 }
             </style>
@@ -60,16 +91,12 @@
     <body>
     {% if app.user %}
         {% set current_route = app.request.attributes.get('_route') %}
-        {% set is_publications_route = current_route starts with 'app_event_report_publication_' %}
-        {% set is_events_route = current_route starts with 'app_event_' and not is_publications_route %}
+        {% set is_events_route = current_route starts with 'app_event_' %}
         {% set home_route = is_granted(Permissions.EVENT_VIEW) ? path('app_event_index') : (is_granted(Permissions.DEPARTMENT_VIEW) ? path('app_department_index') : (is_granted(Permissions.EMPLOYEE_VIEW) ? path('app_employee_index') : (is_granted(Permissions.USER_VIEW) ? path('app_user_index') : '#'))) %}
 
         <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow-sm">
             <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" href="{{ home_route }}">Планировщик</a>
             <div class="navbar-nav flex-row ms-auto align-items-center">
-{#                <div class="nav-item text-nowrap d-none d-md-block px-3">#}
-{#                    <a href="{{ path('app_logout') }}" class="nav-link text-white">Выход</a>#}
-{#                </div>#}
                 <button class="navbar-toggler position-static d-md-none me-2" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Переключить навигацию">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -77,23 +104,15 @@
         </header>
 
         <div class="container-fluid">
-            <div class="row">
+            <div class="row align-items-start">
                 <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-white sidebar collapse border-end">
-                    <div class="position-sticky pt-3 px-3 pb-4">
+                    <div class="pt-3 px-3 pb-4">
                         <div class="sidebar-section-title">Основное меню</div>
                         <ul class="nav flex-column gap-1 mb-4">
                             {% if is_granted(Permissions.EVENT_VIEW) %}
                                 <li class="nav-item">
                                     <a href="{{ path('app_event_index') }}" class="nav-link {% if is_events_route %}active{% endif %}">
                                         <i class="bi bi-calendar3 me-2"></i>План
-                                    </a>
-                                </li>
-                            {% endif %}
-
-                            {% if is_granted(Permissions.EVENT_REPORT_VIEW) or is_granted(Permissions.EVENT_REPORT_MANAGE) %}
-                                <li class="nav-item">
-                                    <a href="{{ path('app_event_report_publication_index') }}" class="nav-link {% if is_publications_route %}active{% endif %}">
-                                        <i class="bi bi-megaphone me-2"></i>Публикации
                                     </a>
                                 </li>
                             {% endif %}
@@ -121,6 +140,7 @@
                                     </a>
                                 </li>
                             {% endif %}
+
                             <li class="nav-item">
                                 <a href="{{ path('app_logout') }}" class="nav-link">
                                     <i class="bi bi-door-closed me-2"></i>Выход
@@ -134,7 +154,7 @@
                     </div>
                 </nav>
 
-                <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
+                <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4 app-main">
                     {% block body %}{% endblock %}
                 </main>
             </div>
