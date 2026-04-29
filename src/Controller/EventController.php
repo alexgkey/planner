@@ -9,6 +9,8 @@ use App\Form\EventType;
 use App\Repository\DepartmentRepository;
 use App\Repository\EventRepository;
 use App\Security\Permissions\AppPermissions;
+use App\Service\EventAnalyticsService;
+use App\Service\EventFilterService;
 use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -23,18 +25,18 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class EventController extends AbstractController
 {
     #[Route(name: 'app_event_index', methods: ['GET'])]
-    public function index(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository): Response
+    public function index(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository, EventFilterService $eventFilterService): Response
     {
-        $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository);
+        $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository, $eventFilterService);
 
         return $this->render('event/index.html.twig', $listing);
     }
 
     #[Route('/export', name: 'app_event_export', methods: ['GET'])]
     #[IsGranted(AppPermissions::EVENT_ADMIN)]
-    public function export(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository): Response
+    public function export(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository, EventFilterService $eventFilterService): Response
     {
-        $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository);
+        $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository, $eventFilterService);
         $rowsByDepartment = $this->groupEventsForExport($this->filterExportableEvents($listing['events']));
 
         $content = $this->renderView('event/export.xls.twig', [
@@ -51,9 +53,9 @@ class EventController extends AbstractController
     }
 
     #[Route('/export/pdf', name: 'app_event_export_pdf', methods: ['GET'])]
-    public function exportPdf(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository): Response
+    public function exportPdf(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository, EventFilterService $eventFilterService): Response
     {
-        $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository);
+        $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository, $eventFilterService);
         $events = $this->filterExportableEvents($listing['events']);
         $this->sortEventsForPdfExport($events);
 
@@ -89,9 +91,9 @@ class EventController extends AbstractController
     }
 
     #[Route('/export/reports/pdf', name: 'app_event_export_reports_pdf', methods: ['GET'])]
-    public function exportReportsPdf(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository): Response
+    public function exportReportsPdf(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository, EventFilterService $eventFilterService): Response
     {
-        $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository);
+        $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository, $eventFilterService);
         $events = $this->filterExportableEvents($listing['events']);
         $this->sortEventsForPdfExport($events);
 
@@ -123,6 +125,24 @@ class EventController extends AbstractController
         return new Response($dompdf->output(), Response::HTTP_OK, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => sprintf('attachment; filename="%s"', $filename),
+        ]);
+    }
+
+    #[Route('/analytics', name: 'app_event_analytics', methods: ['GET'])]
+    #[IsGranted(AppPermissions::EVENT_ADMIN)]
+    public function analytics(
+        Request $request,
+        EventRepository $eventRepository,
+        DepartmentRepository $departmentRepository,
+        EventFilterService $eventFilterService,
+        EventAnalyticsService $eventAnalyticsService,
+    ): Response {
+        $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository, $eventFilterService, true);
+        $analytics = $eventAnalyticsService->build($listing['events']);
+
+        return $this->render('event/analytics.html.twig', $listing + [
+            'analytics' => $analytics,
+            'metric_labels' => $eventAnalyticsService->getReportMetricLabels(),
         ]);
     }
 
@@ -287,90 +307,16 @@ class EventController extends AbstractController
      *     include_undated: bool
      * }
      */
-    private function resolveEventListing(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository): array
+    private function resolveEventListing(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository, EventFilterService $eventFilterService, bool $excludeCancelled = false): array
     {
-        $employee = $this->getUser()?->getEmployee();
-        $department = $employee?->getDepartment();
-        $canViewAny = $this->canViewAnyEvents();
-
-        $events = $canViewAny
-            ? $eventRepository->findActiveByDepartment()
-            : ($department ? $eventRepository->findActiveByDepartment($department) : []);
-
-        $monthOptions = $this->buildMonthOptions();
-        $defaultMonths = array_keys($monthOptions);
-        $selectedMonths = (array) $request->query->all('months');
-        $selectedMonths = array_values(array_intersect($selectedMonths, $defaultMonths));
-        if ([] === $selectedMonths) {
-            $selectedMonths = $defaultMonths;
-        }
-
-        $departmentOptions = [];
-        $selectedDepartmentIds = [];
-        if ($canViewAny) {
-            $departmentOptions = $departmentRepository->findActive();
-            $defaultDepartmentIds = array_map(
-                static fn (Department $department): int => $department->getId(),
-                $departmentOptions
-            );
-
-            $selectedDepartmentIds = array_map('intval', (array) $request->query->all('departments'));
-            $selectedDepartmentIds = array_values(array_intersect($selectedDepartmentIds, $defaultDepartmentIds));
-            if ([] === $selectedDepartmentIds) {
-                $selectedDepartmentIds = $defaultDepartmentIds;
-            }
-        }
-
-        $includeUndated = filter_var(
-            $request->query->get('include_undated', '1'),
-            FILTER_VALIDATE_BOOL,
-            FILTER_NULL_ON_FAILURE
+        return $eventFilterService->resolveListing(
+            $request,
+            $eventRepository,
+            $departmentRepository,
+            $this->getUser(),
+            $this->canViewAnyEvents(),
+            $excludeCancelled
         );
-        if (null === $includeUndated) {
-            $includeUndated = true;
-        }
-
-        $events = $this->filterEvents($events, $selectedDepartmentIds, $selectedMonths, $includeUndated);
-
-        return [
-            'events' => $events,
-            'can_filter_months' => true,
-            'can_filter_departments' => $canViewAny,
-            'department_options' => $departmentOptions,
-            'month_options' => $monthOptions,
-            'selected_department_ids' => $selectedDepartmentIds,
-            'selected_months' => $selectedMonths,
-            'include_undated' => $includeUndated,
-        ];
-    }
-
-    /**
-     * @param Event[] $events
-     * @param int[] $selectedDepartmentIds
-     * @param string[] $selectedMonths
-     * @param bool $includeUndated
-     * @return Event[]
-     */
-    private function filterEvents(array $events, array $selectedDepartmentIds, array $selectedMonths, bool $includeUndated): array
-    {
-        return array_values(array_filter($events, function (Event $event) use ($selectedDepartmentIds, $selectedMonths, $includeUndated): bool {
-            $eventDate = $event->getDate();
-            if (null === $eventDate) {
-                return $includeUndated;
-            }
-
-            if (null !== $eventDate && !in_array($eventDate->format('Y-m'), $selectedMonths, true)) {
-                return false;
-            }
-
-            if ([] === $selectedDepartmentIds) {
-                return true;
-            }
-
-            $eventDepartmentId = $event->getDepartment()?->getId();
-
-            return null === $eventDepartmentId || in_array($eventDepartmentId, $selectedDepartmentIds, true);
-        }));
     }
 
     private function canViewAnyEvents(): bool
@@ -534,31 +480,6 @@ class EventController extends AbstractController
         $monthNumber = (int) $date->format('n');
 
         return sprintf('%s %s', $months[$monthNumber] ?? $monthValue, $date->format('Y'));
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function buildMonthOptions(): array
-    {
-        $options = [];
-        $today = new \DateTimeImmutable('today');
-        $currentYear = (int) $today->format('Y');
-        $currentMonth = (int) $today->format('n');
-        $remainingMonths = 12 - $currentMonth + 1;
-        $nextYearMonthsToShow = max(0, 3 - $remainingMonths);
-
-        for ($month = 1; $month <= 12; $month++) {
-            $date = new \DateTimeImmutable(sprintf('%d-%02d-01', $currentYear, $month));
-            $options[$date->format('Y-m')] = $date->format('F Y');
-        }
-
-        for ($month = 1; $month <= $nextYearMonthsToShow; $month++) {
-            $date = new \DateTimeImmutable(sprintf('%d-%02d-01', $currentYear + 1, $month));
-            $options[$date->format('Y-m')] = $date->format('F Y');
-        }
-
-        return $options;
     }
 
     private function canDuplicateEvent(): bool

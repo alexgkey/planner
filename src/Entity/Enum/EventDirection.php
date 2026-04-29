@@ -14,7 +14,6 @@ enum EventDirection: string
     case WORK_WITH_DISABLED = 'work_with_disabled';
     case PREVENTION_OF_NEGATIVE_PHENOMENA = 'prevention_of_negative_phenomena';
     case SVO_THEMED_EVENTS = 'smo_themed_events';
-
     case VOLUNTEERING = 'volunteering';
 
     public function getLabel(): string

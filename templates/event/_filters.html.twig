@@ -49,16 +49,88 @@
         </div>
     {% endif %}
 
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+            Уровень
+            <span class="text-muted ms-1">({{ selected_levels|length }})</span>
+        </button>
+        <div class="dropdown-menu p-3 shadow-sm" style="min-width: 320px; max-width: 360px;">
+            <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                <h2 class="h6 mb-0">Уровень</h2>
+                <div class="d-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-select-group="levels">Отметить все</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-clear-group="levels">Снять все</button>
+                </div>
+            </div>
+            <div class="d-grid gap-1">
+                {% for level in level_options %}
+                    <label class="form-check border rounded px-2 py-1 small w-100 bg-white">
+                        <input class="form-check-input me-2" type="checkbox" name="levels[]" value="{{ level.value }}" {% if level.value in selected_levels %}checked{% endif %}>
+                        <span class="form-check-label">{{ level.label }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+            Формат
+            <span class="text-muted ms-1">({{ selected_formats|length }})</span>
+        </button>
+        <div class="dropdown-menu p-3 shadow-sm" style="min-width: 320px; max-width: 360px;">
+            <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                <h2 class="h6 mb-0">Формат</h2>
+                <div class="d-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-select-group="formats">Отметить все</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-clear-group="formats">Снять все</button>
+                </div>
+            </div>
+            <div class="d-grid gap-1">
+                {% for format in format_options %}
+                    <label class="form-check border rounded px-2 py-1 small w-100 bg-white">
+                        <input class="form-check-input me-2" type="checkbox" name="formats[]" value="{{ format.value }}" {% if format.value in selected_formats %}checked{% endif %}>
+                        <span class="form-check-label">{{ format.label }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+            Направление
+            <span class="text-muted ms-1">({{ selected_directions|length }})</span>
+        </button>
+        <div class="dropdown-menu p-3 shadow-sm" style="min-width: 320px; max-width: 360px;">
+            <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                <h2 class="h6 mb-0">Направление</h2>
+                <div class="d-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-select-group="directions">Отметить все</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-clear-group="directions">Снять все</button>
+                </div>
+            </div>
+            <div class="d-grid gap-1">
+                {% for direction in direction_options %}
+                    <label class="form-check border rounded px-2 py-1 small w-100 bg-white">
+                        <input class="form-check-input me-2" type="checkbox" name="directions[]" value="{{ direction.value }}" {% if direction.value in selected_directions %}checked{% endif %}>
+                        <span class="form-check-label">{{ direction.label }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
     <div>
-        <label for="include-undated-filter" class="form-label small text-muted mb-1">Без даты</label>
-        <select name="include_undated" id="include-undated-filter" class="form-select form-select-sm">
+        <label for="{{ include_undated_id|default('include-undated-filter') }}" class="form-label small text-muted mb-1">Без даты</label>
+        <select name="include_undated" id="{{ include_undated_id|default('include-undated-filter') }}" class="form-select form-select-sm">
             <option value="1" {% if include_undated %}selected{% endif %}>Показывать</option>
-            <option value="0" {% if not include_undated %}selected{% endif %}>Скрывать</option>
+            <option value="0" {% if not include_undated %}selected{% endif %}>Скрыть</option>
         </select>
     </div>
 
     <div class="d-flex flex-column gap-2 align-items-stretch">
-        <a href="{{ filter_reset_path|default(path('app_event_index')) }}" class="btn btn-outline-secondary" id="event-filters-reset">Сбросить</a>
+        <a href="{{ filter_reset_path|default(path('app_event_index')) }}" class="btn btn-outline-secondary" id="{{ filter_reset_id|default('event-filters-reset') }}">Сбросить</a>
         <button type="submit" class="btn btn-primary">Применить</button>
     </div>
 </form>

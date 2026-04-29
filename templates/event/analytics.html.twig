@@ -1,0 +1,342 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Аналитика мероприятий{% endblock %}
+
+{% block sidebar_extra %}
+    <hr class="my-4">
+    <div class="sidebar-section-title">Фильтры</div>
+    {% include 'event/_filters.html.twig' with {
+        filter_action: path('app_event_analytics'),
+        filter_reset_path: path('app_event_analytics'),
+        filter_form_id: 'event-analytics-filters-form',
+        filter_reset_id: 'event-analytics-filters-reset',
+        include_undated_id: 'analytics-include-undated-filter'
+    } %}
+
+{#    <hr class="my-4">#}
+{#    <div class="sidebar-section-title">Действия</div>#}
+{#    <a href="{{ path('app_event_index', app.request.query.all) }}" class="nav-link">#}
+{#        <i class="bi bi-calendar3 me-2"></i>Вернуться к плану#}
+{#    </a>#}
+{% endblock %}
+
+{% block body %}
+    {% set summary = analytics.summary %}
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="mb-1 h2">Аналитика мероприятий</h1>
+            <p class="text-muted mb-0">Отмененные мероприятия не выводятся и не учитываются в показателях.</p>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap justify-content-start gap-3 mb-4">
+        <div class="bg-white border rounded-3 shadow-sm px-4 py-3">
+            <div class="text-muted small text-uppercase">Всего</div>
+            <div class="fs-3 fw-semibold">{{ summary.total_events }}</div>
+        </div>
+        <div class="bg-white border rounded-3 shadow-sm px-4 py-3">
+            <div class="text-muted small text-uppercase">Проведено</div>
+            <div class="fs-3 fw-semibold">{{ summary.completed_events }}</div>
+            <div class="small text-muted">{{ summary.completed_percent }}%</div>
+        </div>
+        <div class="bg-white border rounded-3 shadow-sm px-4 py-3">
+            <div class="text-muted small text-uppercase">Отчеты</div>
+            <div class="fs-3 fw-semibold">{{ summary.reported_events }}</div>
+            <div class="small text-muted">{{ summary.reported_percent }}%</div>
+        </div>
+        <div class="bg-white border rounded-3 shadow-sm px-4 py-3">
+            <div class="text-muted small text-uppercase">Без отчета</div>
+            <div class="fs-3 fw-semibold">{{ summary.missing_reports }}</div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-xl-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h2 class="h6 text-muted mb-3">Проведено / запланировано</h2>
+                    <canvas id="completed-chart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h2 class="h6 text-muted mb-3">Уровни</h2>
+                    <canvas id="levels-chart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h2 class="h6 text-muted mb-3">Формат</h2>
+                    <canvas id="formats-chart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h2 class="h6 text-muted mb-3">Доступность</h2>
+                    <canvas id="accessibility-chart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h2 class="h6 text-muted mb-3">Целевая аудитория</h2>
+                    <canvas id="audiences-chart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h2 class="h6 text-muted mb-3">Направления</h2>
+                    <canvas id="directions-chart" height="220"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <h2 class="h5 mb-0">Мероприятия и показатели отчетов</h2>
+                <span class="text-muted small">Сгруппировано по отделам</span>
+            </div>
+
+            {% if analytics.departments is empty %}
+                <div class="text-center text-muted py-5 bg-light rounded-4 border">
+                    По выбранным фильтрам мероприятий не найдено.
+                </div>
+            {% else %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Мероприятие</th>
+                                <th>Дата</th>
+                                <th>Статус</th>
+                                <th>Уровень</th>
+                                <th>Формат</th>
+                                <th>Направление</th>
+                                <th>Доступность</th>
+                                <th>Целевая аудитория</th>
+                                <th>Отчет</th>
+                                {% for label in metric_labels %}
+                                    <th class="text-end">{{ label }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for department in analytics.departments %}
+                                <tr class="table-primary">
+                                    <th colspan="{{ 9 + metric_labels|length }}">
+                                        {{ department.title }}
+                                        <span class="fw-normal text-muted ms-2">
+                                            всего: {{ department.total_events }},
+                                            проведено: {{ department.completed_events }},
+                                            отчетов: {{ department.reported_events }}
+                                        </span>
+                                    </th>
+                                </tr>
+
+                                {% for event in department.events %}
+                                    {% set report = event.report %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ path('app_event_show', {'id': event.id}) }}" class="fw-semibold text-decoration-none">
+                                                {{ event.title }}
+                                            </a>
+                                        </td>
+                                        <td class="text-nowrap">
+                                            {% if event.date %}
+                                                {{ event.date|date('d.m.Y') }}{% if event.time %} {{ event.time|date('H:i') }}{% endif %}
+                                            {% else %}
+                                                <span class="text-muted">Без даты</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ event.status.label }}</td>
+                                        <td>{{ event.eventLevel.label }}</td>
+                                        <td>{{ event.onOffLine.label }}</td>
+                                        <td>{{ event.eventDirection.label }}</td>
+                                        <td>{{ event.eventAccessibility.label }}</td>
+                                        <td>{{ event.targetAudience.label }}</td>
+                                        <td>
+                                            {% if report %}
+                                                <span class="badge text-bg-success">Есть</span>
+                                                {% if report.createAt %}
+                                                    <div class="small text-muted">{{ report.createAt|date('d.m.Y') }}</div>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">Отчета нет</span>
+                                            {% endif %}
+                                        </td>
+                                        {% for metric, label in metric_labels %}
+                                            <td class="text-end">{{ report ? attribute(report, metric)|default(0) : 0 }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                {% endfor %}
+
+                                <tr class="table-light fw-semibold">
+                                    <td colspan="9">Итого по отделу</td>
+                                    {% for metric, label in metric_labels %}
+                                        <td class="text-end">{{ department.totals[metric] }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+
+                            <tr class="table-dark fw-semibold">
+                                <td colspan="9">Итого по всем отделам</td>
+                                {% for metric, label in metric_labels %}
+                                    <td class="text-end">{{ analytics.totals[metric] }}</td>
+                                {% endfor %}
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const storageKey = 'planner-event-filters-v1';
+            const form = document.getElementById('event-analytics-filters-form');
+            const resetLink = document.getElementById('event-analytics-filters-reset');
+
+            if (form) {
+                const url = new URL(window.location.href);
+                const hasFilterParams = url.searchParams.has('months[]')
+                    || url.searchParams.has('departments[]')
+                    || url.searchParams.has('levels[]')
+                    || url.searchParams.has('formats[]')
+                    || url.searchParams.has('directions[]')
+                    || url.searchParams.has('include_undated');
+
+                if (!hasFilterParams) {
+                    const saved = localStorage.getItem(storageKey);
+                    if (saved) {
+                        try {
+                            const parsed = JSON.parse(saved);
+                            const redirectUrl = new URL(window.location.href);
+                            (parsed.months || []).forEach(month => redirectUrl.searchParams.append('months[]', month));
+                            (parsed.departments || []).forEach(department => redirectUrl.searchParams.append('departments[]', department));
+                            (parsed.levels || []).forEach(level => redirectUrl.searchParams.append('levels[]', level));
+                            (parsed.formats || []).forEach(format => redirectUrl.searchParams.append('formats[]', format));
+                            (parsed.directions || []).forEach(direction => redirectUrl.searchParams.append('directions[]', direction));
+                            redirectUrl.searchParams.set('include_undated', parsed.includeUndated ?? '1');
+                            window.location.replace(redirectUrl.toString());
+                            return;
+                        } catch (error) {
+                            localStorage.removeItem(storageKey);
+                        }
+                    }
+                }
+
+                form.addEventListener('submit', function () {
+                    const payload = {
+                        months: Array.from(form.querySelectorAll('input[name="months[]"]:checked')).map(input => input.value),
+                        departments: Array.from(form.querySelectorAll('input[name="departments[]"]:checked')).map(input => input.value),
+                        levels: Array.from(form.querySelectorAll('input[name="levels[]"]:checked')).map(input => input.value),
+                        formats: Array.from(form.querySelectorAll('input[name="formats[]"]:checked')).map(input => input.value),
+                        directions: Array.from(form.querySelectorAll('input[name="directions[]"]:checked')).map(input => input.value),
+                        includeUndated: form.querySelector("select[name='include_undated']")?.value ?? '1',
+                    };
+                    localStorage.setItem(storageKey, JSON.stringify(payload));
+                });
+
+                resetLink?.addEventListener('click', function () {
+                    localStorage.removeItem(storageKey);
+                });
+
+                document.querySelectorAll('[data-select-group]').forEach(button => {
+                    button.addEventListener('click', function () {
+                        form.querySelectorAll(`input[name="${this.dataset.selectGroup}[]"]`).forEach(input => {
+                            input.checked = true;
+                        });
+                    });
+                });
+
+                document.querySelectorAll('[data-clear-group]').forEach(button => {
+                    button.addEventListener('click', function () {
+                        form.querySelectorAll(`input[name="${this.dataset.clearGroup}[]"]`).forEach(input => {
+                            input.checked = false;
+                        });
+                    });
+                });
+            }
+
+            const summary = {{ analytics.summary|json_encode|raw }};
+            const distributions = {{ analytics.distributions|json_encode|raw }};
+            const chartColors = ['#0d6efd', '#20c997', '#ffc107', '#dc3545', '#6f42c1', '#fd7e14', '#198754', '#0dcaf0', '#adb5bd'];
+
+            function makeDataset(distribution) {
+                return {
+                    labels: Object.keys(distribution),
+                    values: Object.values(distribution),
+                };
+            }
+
+            function renderChart(id, type, labels, values, indexAxis = 'x') {
+                const element = document.getElementById(id);
+                if (!element) {
+                    return;
+                }
+
+                new Chart(element, {
+                    type,
+                    data: {
+                        labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: chartColors,
+                            borderWidth: 1,
+                        }],
+                    },
+                    options: {
+                        indexAxis,
+                        responsive: true,
+{#                        maintainAspectRatio: false,#}
+                        plugins: {
+                            legend: {
+                                display: type !== 'bar',
+                                position: 'bottom',
+                            },
+                        },
+                        scales: type === 'bar' ? {
+                            x: { beginAtZero: true, ticks: { precision: 0 } },
+                            y: { ticks: { autoSkip: false } },
+                        } : {},
+                    },
+                });
+            }
+
+            const plannedEvents = Math.max(summary.total_events - summary.completed_events, 0);
+            renderChart('completed-chart', 'doughnut', ['Проведено', 'Не проведено'], [summary.completed_events, plannedEvents]);
+
+            const levels = makeDataset(distributions.levels);
+            renderChart('levels-chart', 'doughnut', levels.labels, levels.values);
+
+            const formats = makeDataset(distributions.formats);
+            renderChart('formats-chart', 'doughnut', formats.labels, formats.values);
+
+            const directions = makeDataset(distributions.directions);
+            renderChart('directions-chart', 'doughnut', directions.labels, directions.values);
+
+            const accessibility = makeDataset(distributions.accessibility);
+            renderChart('accessibility-chart', 'doughnut', accessibility.labels, accessibility.values);
+
+            const audiences = makeDataset(distributions.audiences);
+            renderChart('audiences-chart', 'doughnut', audiences.labels, audiences.values);
+        });
+    </script>
+{% endblock %}

@@ -27,6 +27,9 @@
                     <i class="bi bi-file-earmark-text me-2"></i>Распечатать Отчеты
                 </a>
                 {% if is_granted(Permissions.EVENT_ADMIN) %}
+                    <a href="{{ path('app_event_analytics', app.request.query.all) }}" class="nav-link">
+                        <i class="bi bi-bar-chart-line me-2"></i>Аналитика
+                    </a>
                     <a href="{{ path('app_event_export', app.request.query.all) }}" class="nav-link">
                         <i class="bi bi-file-earmark-excel me-2"></i>Экспорт в Excel
                     </a>
@@ -195,8 +198,11 @@
                 const url = new URL(window.location.href);
                 const hasMonthParams = url.searchParams.has('months[]');
                 const hasDepartmentParams = url.searchParams.has('departments[]');
+                const hasLevelParams = url.searchParams.has('levels[]');
+                const hasFormatParams = url.searchParams.has('formats[]');
+                const hasDirectionParams = url.searchParams.has('directions[]');
                 const hasUndatedParam = url.searchParams.has('include_undated');
-                const hasFilterParams = hasMonthParams || hasDepartmentParams || hasUndatedParam;
+                const hasFilterParams = hasMonthParams || hasDepartmentParams || hasLevelParams || hasFormatParams || hasDirectionParams || hasUndatedParam;
 
                 if (!hasFilterParams) {
                     const saved = localStorage.getItem(storageKey);
@@ -206,6 +212,9 @@
                             const redirectUrl = new URL(window.location.href);
                             (parsed.months || []).forEach(month => redirectUrl.searchParams.append('months[]', month));
                             (parsed.departments || []).forEach(department => redirectUrl.searchParams.append('departments[]', department));
+                            (parsed.levels || []).forEach(level => redirectUrl.searchParams.append('levels[]', level));
+                            (parsed.formats || []).forEach(format => redirectUrl.searchParams.append('formats[]', format));
+                            (parsed.directions || []).forEach(direction => redirectUrl.searchParams.append('directions[]', direction));
                             redirectUrl.searchParams.set('include_undated', parsed.includeUndated ?? '1');
 
                             if (redirectUrl.search) {
@@ -222,6 +231,9 @@
                     const payload = {
                         months: Array.from(form.querySelectorAll('input[name="months[]"]:checked')).map(input => input.value),
                         departments: Array.from(form.querySelectorAll('input[name="departments[]"]:checked')).map(input => input.value),
+                        levels: Array.from(form.querySelectorAll('input[name="levels[]"]:checked')).map(input => input.value),
+                        formats: Array.from(form.querySelectorAll('input[name="formats[]"]:checked')).map(input => input.value),
+                        directions: Array.from(form.querySelectorAll('input[name="directions[]"]:checked')).map(input => input.value),
                         includeUndated: form.querySelector("select[name='include_undated']")?.value ?? '1',
                     };
                     localStorage.setItem(storageKey, JSON.stringify(payload));
