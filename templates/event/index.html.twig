@@ -1,7 +1,19 @@
 {% extends 'base.html.twig' %}
 
 {% block title %}План мероприятий{% endblock %}
-
+{% block stylesheets %}
+<style>
+    .card-title {
+        font-size: small;
+    }
+    .status-text {
+        font-size: x-small;
+    }
+    .department-text {
+        font-size: x-small;
+    }
+</style>
+{% endblock %}
 {% block sidebar_extra %}
     {% if can_filter_months %}
         <hr class="my-4">
@@ -27,9 +39,9 @@
                     <i class="bi bi-file-earmark-text me-2"></i>Распечатать Отчеты
                 </a>
                 {% if is_granted(Permissions.EVENT_ADMIN) %}
-                    <a href="{{ path('app_event_analytics', app.request.query.all) }}" class="nav-link">
-                        <i class="bi bi-bar-chart-line me-2"></i>Аналитика
-                    </a>
+{#                    <a href="{{ path('app_event_analytics', app.request.query.all) }}" class="nav-link">#}
+{#                        <i class="bi bi-bar-chart-line me-2"></i>Аналитика#}
+{#                    </a>#}
                     <a href="{{ path('app_event_export', app.request.query.all) }}" class="nav-link">
                         <i class="bi bi-file-earmark-excel me-2"></i>Экспорт в Excel
                     </a>
@@ -127,11 +139,11 @@
     class="card h-100 text-decoration-none text-body shadow-sm position-relative overflow-hidden {% if is_cancelled %}opacity-50{% endif %}"
 >
     {% if event.date %}
-        <div class="position-absolute top-0 end-0 text-center bg-light border-start border-bottom px-2 py-2" style="width: 4.75rem;">
-            <div class="fw-bold lh-1" style="font-size: 1.25rem; color: #45a9b1">{{ event.date|date('d') }}</div>
-            <div class="small text-muted text-uppercase lh-1 mt-1">{{ event.date|format_datetime(locale='ru', pattern='MMM') }}</div>
+        <div class="position-absolute top-0 end-0 text-center bg-light border-start border-bottom px-2 py-2" style="width: 3.75rem;">
+            <div class="fw-bold lh-1" style="font-size: 0.75rem; color: #45a9b1">{{ event.date|date('d') }}</div>
+            <div class="small text-muted text-uppercase lh-1 mt-1" style="font-size: small;">{{ event.date|format_datetime(locale='ru', pattern='MMM') }}</div>
             {% if event.time %}
-                <div class="small text-body fw-semibold mt-2 lh-1">{{ event.time|date('H:i') }}</div>
+                <div class="small text-body fw-semibold mt-2 lh-1" style="font-size: small;">{{ event.time|date('H:i') }}</div>
             {% endif %}
         </div>
     {% else %}
@@ -144,7 +156,7 @@
         <div class="mb-2 pe-4">
             <h6 class="card-title mb-0 me-2 {% if is_cancelled %}text-decoration-line-through{% endif %}">{{ event.title }}</h6>
             {% if is_completed %}
-                <div class="small text-success mt-2">
+                <div class="small text-success mt-2 status-text">
                     <i class="bi bi-check-circle-fill me-1"></i>Проведено
                 </div>
             {% endif %}
@@ -158,14 +170,14 @@
         {% endif %}
 
         {% if event.note %}
-            <p class="card-text small text-muted mt-3 mb-0" style="font-size: 0.8em; line-height: 1.2;">
+            <p class="card-text small text-muted mt-3 mb-0" style="font-size: x-small; line-height: 1.2;">
                 {{ event.note|slice(0, 80) }}{% if event.note|length > 80 %}...{% endif %}
             </p>
         {% endif %}
 
         <div class="mt-auto pt-3 d-flex justify-content-between align-items-end gap-2">
             {% if showDepartmentMeta and event.department %}
-                <span class="badge text-white" style="background-color: {{ departmentColor }};">
+                <span class="badge text-white department-text" style="background-color: {{ departmentColor }};">
                     {{ event.department.title }}
                 </span>
             {% else %}
@@ -201,8 +213,10 @@
                 const hasLevelParams = url.searchParams.has('levels[]');
                 const hasFormatParams = url.searchParams.has('formats[]');
                 const hasDirectionParams = url.searchParams.has('directions[]');
+                const hasAccessibilityParams = url.searchParams.has('accessibilities[]');
+                const hasAudienceParams = url.searchParams.has('audiences[]');
                 const hasUndatedParam = url.searchParams.has('include_undated');
-                const hasFilterParams = hasMonthParams || hasDepartmentParams || hasLevelParams || hasFormatParams || hasDirectionParams || hasUndatedParam;
+                const hasFilterParams = hasMonthParams || hasDepartmentParams || hasLevelParams || hasFormatParams || hasDirectionParams || hasAccessibilityParams || hasAudienceParams || hasUndatedParam;
 
                 if (!hasFilterParams) {
                     const saved = localStorage.getItem(storageKey);
@@ -215,6 +229,8 @@
                             (parsed.levels || []).forEach(level => redirectUrl.searchParams.append('levels[]', level));
                             (parsed.formats || []).forEach(format => redirectUrl.searchParams.append('formats[]', format));
                             (parsed.directions || []).forEach(direction => redirectUrl.searchParams.append('directions[]', direction));
+                            (parsed.accessibilities || []).forEach(accessibility => redirectUrl.searchParams.append('accessibilities[]', accessibility));
+                            (parsed.audiences || []).forEach(audience => redirectUrl.searchParams.append('audiences[]', audience));
                             redirectUrl.searchParams.set('include_undated', parsed.includeUndated ?? '1');
 
                             if (redirectUrl.search) {
@@ -234,6 +250,8 @@
                         levels: Array.from(form.querySelectorAll('input[name="levels[]"]:checked')).map(input => input.value),
                         formats: Array.from(form.querySelectorAll('input[name="formats[]"]:checked')).map(input => input.value),
                         directions: Array.from(form.querySelectorAll('input[name="directions[]"]:checked')).map(input => input.value),
+                        accessibilities: Array.from(form.querySelectorAll('input[name="accessibilities[]"]:checked')).map(input => input.value),
+                        audiences: Array.from(form.querySelectorAll('input[name="audiences[]"]:checked')).map(input => input.value),
                         includeUndated: form.querySelector("select[name='include_undated']")?.value ?? '1',
                     };
                     localStorage.setItem(storageKey, JSON.stringify(payload));

@@ -121,6 +121,54 @@
         </div>
     </div>
 
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+            Доступность
+            <span class="text-muted ms-1">({{ selected_accessibilities|length }})</span>
+        </button>
+        <div class="dropdown-menu p-3 shadow-sm" style="min-width: 320px; max-width: 360px;">
+            <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                <h2 class="h6 mb-0">Доступность</h2>
+                <div class="d-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-select-group="accessibilities">Отметить все</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-clear-group="accessibilities">Снять все</button>
+                </div>
+            </div>
+            <div class="d-grid gap-1">
+                {% for accessibility in accessibility_options %}
+                    <label class="form-check border rounded px-2 py-1 small w-100 bg-white">
+                        <input class="form-check-input me-2" type="checkbox" name="accessibilities[]" value="{{ accessibility.value }}" {% if accessibility.value in selected_accessibilities %}checked{% endif %}>
+                        <span class="form-check-label">{{ accessibility.label }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+            Целевая аудитория
+            <span class="text-muted ms-1">({{ selected_audiences|length }})</span>
+        </button>
+        <div class="dropdown-menu p-3 shadow-sm" style="min-width: 320px; max-width: 360px;">
+            <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                <h2 class="h6 mb-0">Целевая аудитория</h2>
+                <div class="d-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-select-group="audiences">Отметить все</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" data-clear-group="audiences">Снять все</button>
+                </div>
+            </div>
+            <div class="d-grid gap-1">
+                {% for audience in audience_options %}
+                    <label class="form-check border rounded px-2 py-1 small w-100 bg-white">
+                        <input class="form-check-input me-2" type="checkbox" name="audiences[]" value="{{ audience.value }}" {% if audience.value in selected_audiences %}checked{% endif %}>
+                        <span class="form-check-label">{{ audience.label }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
     <div>
         <label for="{{ include_undated_id|default('include-undated-filter') }}" class="form-label small text-muted mb-1">Без даты</label>
         <select name="include_undated" id="{{ include_undated_id|default('include-undated-filter') }}" class="form-select form-select-sm">

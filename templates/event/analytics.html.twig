@@ -220,6 +220,8 @@
                     || url.searchParams.has('levels[]')
                     || url.searchParams.has('formats[]')
                     || url.searchParams.has('directions[]')
+                    || url.searchParams.has('accessibilities[]')
+                    || url.searchParams.has('audiences[]')
                     || url.searchParams.has('include_undated');
 
                 if (!hasFilterParams) {
@@ -233,6 +235,8 @@
                             (parsed.levels || []).forEach(level => redirectUrl.searchParams.append('levels[]', level));
                             (parsed.formats || []).forEach(format => redirectUrl.searchParams.append('formats[]', format));
                             (parsed.directions || []).forEach(direction => redirectUrl.searchParams.append('directions[]', direction));
+                            (parsed.accessibilities || []).forEach(accessibility => redirectUrl.searchParams.append('accessibilities[]', accessibility));
+                            (parsed.audiences || []).forEach(audience => redirectUrl.searchParams.append('audiences[]', audience));
                             redirectUrl.searchParams.set('include_undated', parsed.includeUndated ?? '1');
                             window.location.replace(redirectUrl.toString());
                             return;
@@ -249,6 +253,8 @@
                         levels: Array.from(form.querySelectorAll('input[name="levels[]"]:checked')).map(input => input.value),
                         formats: Array.from(form.querySelectorAll('input[name="formats[]"]:checked')).map(input => input.value),
                         directions: Array.from(form.querySelectorAll('input[name="directions[]"]:checked')).map(input => input.value),
+                        accessibilities: Array.from(form.querySelectorAll('input[name="accessibilities[]"]:checked')).map(input => input.value),
+                        audiences: Array.from(form.querySelectorAll('input[name="audiences[]"]:checked')).map(input => input.value),
                         includeUndated: form.querySelector("select[name='include_undated']")?.value ?? '1',
                     };
                     localStorage.setItem(storageKey, JSON.stringify(payload));

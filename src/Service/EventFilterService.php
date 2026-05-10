@@ -3,10 +3,12 @@
 namespace App\Service;
 
 use App\Entity\Department;
+use App\Entity\Enum\EventAccessibility;
 use App\Entity\Enum\EventDirection;
 use App\Entity\Enum\EventLevel;
 use App\Entity\Enum\EventStatus;
 use App\Entity\Enum\OnOffLine;
+use App\Entity\Enum\TargetAudience;
 use App\Entity\Event;
 use App\Entity\User;
 use App\Repository\DepartmentRepository;
@@ -25,11 +27,15 @@ class EventFilterService
      *     level_options: EventLevel[],
      *     format_options: OnOffLine[],
      *     direction_options: EventDirection[],
+     *     accessibility_options: EventAccessibility[],
+     *     audience_options: TargetAudience[],
      *     selected_department_ids: int[],
      *     selected_months: string[],
      *     selected_levels: string[],
      *     selected_formats: string[],
      *     selected_directions: string[],
+     *     selected_accessibilities: string[],
+     *     selected_audiences: string[],
      *     include_undated: bool
      * }
      */
@@ -69,10 +75,14 @@ class EventFilterService
         $levelOptions = EventLevel::cases();
         $formatOptions = OnOffLine::cases();
         $directionOptions = EventDirection::cases();
+        $accessibilityOptions = EventAccessibility::cases();
+        $audienceOptions = TargetAudience::cases();
 
         $selectedLevels = $this->resolveSelectedValues($request, 'levels', array_map(static fn (EventLevel $case): string => $case->value, $levelOptions));
         $selectedFormats = $this->resolveSelectedValues($request, 'formats', array_map(static fn (OnOffLine $case): string => $case->value, $formatOptions));
         $selectedDirections = $this->resolveSelectedValues($request, 'directions', array_map(static fn (EventDirection $case): string => $case->value, $directionOptions));
+        $selectedAccessibilities = $this->resolveSelectedValues($request, 'accessibilities', array_map(static fn (EventAccessibility $case): string => $case->value, $accessibilityOptions));
+        $selectedAudiences = $this->resolveSelectedValues($request, 'audiences', array_map(static fn (TargetAudience $case): string => $case->value, $audienceOptions));
 
         $includeUndated = filter_var(
             $request->query->get('include_undated', '1'),
@@ -90,6 +100,8 @@ class EventFilterService
             $selectedLevels,
             $selectedFormats,
             $selectedDirections,
+            $selectedAccessibilities,
+            $selectedAudiences,
             $includeUndated,
             $excludeCancelled
         );
@@ -103,11 +115,15 @@ class EventFilterService
             'level_options' => $levelOptions,
             'format_options' => $formatOptions,
             'direction_options' => $directionOptions,
+            'accessibility_options' => $accessibilityOptions,
+            'audience_options' => $audienceOptions,
             'selected_department_ids' => $selectedDepartmentIds,
             'selected_months' => $selectedMonths,
             'selected_levels' => $selectedLevels,
             'selected_formats' => $selectedFormats,
             'selected_directions' => $selectedDirections,
+            'selected_accessibilities' => $selectedAccessibilities,
+            'selected_audiences' => $selectedAudiences,
             'include_undated' => $includeUndated,
         ];
     }
@@ -119,6 +135,8 @@ class EventFilterService
      * @param string[] $selectedLevels
      * @param string[] $selectedFormats
      * @param string[] $selectedDirections
+     * @param string[] $selectedAccessibilities
+     * @param string[] $selectedAudiences
      * @return Event[]
      */
     public function filterEvents(
@@ -128,6 +146,8 @@ class EventFilterService
         array $selectedLevels,
         array $selectedFormats,
         array $selectedDirections,
+        array $selectedAccessibilities,
+        array $selectedAudiences,
         bool $includeUndated,
         bool $excludeCancelled = false,
     ): array {
@@ -137,6 +157,8 @@ class EventFilterService
             $selectedLevels,
             $selectedFormats,
             $selectedDirections,
+            $selectedAccessibilities,
+            $selectedAudiences,
             $includeUndated,
             $excludeCancelled
         ): bool {
@@ -168,7 +190,15 @@ class EventFilterService
                 return false;
             }
 
-            return in_array($event->getEventDirection()?->value, $selectedDirections, true);
+            if (!in_array($event->getEventDirection()?->value, $selectedDirections, true)) {
+                return false;
+            }
+
+            if (!in_array($event->getEventAccessibility()?->value, $selectedAccessibilities, true)) {
+                return false;
+            }
+
+            return in_array($event->getTargetAudience()?->value, $selectedAudiences, true);
         }));
     }
 
