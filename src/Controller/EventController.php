@@ -15,8 +15,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -37,7 +39,8 @@ class EventController extends AbstractController
     public function export(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository, EventFilterService $eventFilterService): Response
     {
         $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository, $eventFilterService);
-        $rowsByDepartment = $this->groupEventsForExport($this->filterExportableEvents($listing['events']));
+        $events = $this->resolveSelectedExportEvents($request, $listing['events']);
+        $rowsByDepartment = $this->groupEventsForExport($this->filterExportableEvents($events));
 
         $content = $this->renderView('event/export.xls.twig', [
             'rows_by_department' => $rowsByDepartment,
@@ -56,7 +59,7 @@ class EventController extends AbstractController
     public function exportPdf(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository, EventFilterService $eventFilterService): Response
     {
         $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository, $eventFilterService);
-        $events = $this->filterExportableEvents($listing['events']);
+        $events = $this->filterExportableEvents($this->resolveSelectedExportEvents($request, $listing['events']));
         $this->sortEventsForPdfExport($events);
 
         $headerDepartment = $this->resolvePdfDepartmentLabel($listing['department_options'], $listing['selected_department_ids']);
@@ -94,7 +97,7 @@ class EventController extends AbstractController
     public function exportReportsPdf(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository, EventFilterService $eventFilterService): Response
     {
         $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository, $eventFilterService);
-        $events = $this->filterExportableEvents($listing['events']);
+        $events = $this->filterExportableEvents($this->resolveSelectedExportEvents($request, $listing['events']));
         $this->sortEventsForPdfExport($events);
 
         $headerDepartment = $this->resolvePdfDepartmentLabel($listing['department_options'], $listing['selected_department_ids']);
@@ -126,6 +129,29 @@ class EventController extends AbstractController
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => sprintf('attachment; filename="%s"', $filename),
         ]);
+    }
+
+    #[Route('/export/photos', name: 'app_event_export_photos', methods: ['GET'])]
+    public function exportPhotos(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository, EventFilterService $eventFilterService): Response
+    {
+        $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository, $eventFilterService);
+        $events = $this->filterExportableEvents($this->resolveSelectedExportEvents($request, $listing['events']));
+
+        $photoFiles = $this->collectReportPhotoFiles($events);
+        if ([] === $photoFiles) {
+            $this->addFlash('warning', 'В выбранных мероприятиях нет фотографий отчетов для экспорта.');
+
+            return $this->redirectToRoute('app_event_index', $request->query->all());
+        }
+
+        $zipPath = $this->createStoredZipArchive($photoFiles);
+        $filename = sprintf('event-photos-%s.zip', (new \DateTimeImmutable())->format('Y-m-d-His'));
+        $response = new BinaryFileResponse($zipPath);
+        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT, $filename);
+        $response->headers->set('Content-Type', 'application/zip');
+        $response->deleteFileAfterSend(true);
+
+        return $response;
     }
 
     #[Route('/analytics', name: 'app_event_analytics', methods: ['GET'])]
@@ -324,6 +350,244 @@ class EventController extends AbstractController
         return $this->isGranted(AppPermissions::EVENT_VIEW_ANY)
             || $this->isGranted(AppPermissions::EVENT_MANAGE_ANY)
             || $this->isGranted(AppPermissions::EVENT_ADMIN);
+    }
+
+    /**
+     * @param Event[] $events
+     * @return Event[]
+     */
+    private function resolveSelectedExportEvents(Request $request, array $events): array
+    {
+        $selectedIds = [];
+        foreach ($request->query->all() as $key => $value) {
+            if ('event_ids' !== $key && 'event_ids[]' !== $key && !str_starts_with((string) $key, 'event_ids[')) {
+                continue;
+            }
+
+            foreach ((array) $value as $selectedId) {
+                $selectedIds[] = (int) $selectedId;
+            }
+        }
+
+        $selectedIds = array_values(array_unique(array_filter($selectedIds, static fn (int $id): bool => $id > 0)));
+
+        if ([] === $selectedIds) {
+            return $events;
+        }
+
+        $selectedIdMap = array_fill_keys($selectedIds, true);
+
+        return array_values(array_filter(
+            $events,
+            static fn (Event $event): bool => null !== $event->getId() && isset($selectedIdMap[$event->getId()])
+        ));
+    }
+
+    /**
+     * @param Event[] $events
+     * @return array<int, array{path: string, archive_name: string}>
+     */
+    private function collectReportPhotoFiles(array $events): array
+    {
+        $photoFiles = [];
+        $usedArchiveNames = [];
+        $uploadDirectory = $this->getParameter('kernel.project_dir') . '/public/uploads/photos';
+
+        foreach ($events as $event) {
+            $report = $event->getReport();
+            if (null === $report || !$report->isActive()) {
+                continue;
+            }
+
+            foreach ($report->getPhotos() as $photo) {
+                $imageName = $photo->getImageName();
+                if (null === $imageName || '' === trim($imageName)) {
+                    continue;
+                }
+
+                $path = $uploadDirectory . '/' . $imageName;
+                if (!is_file($path) || !is_readable($path)) {
+                    continue;
+                }
+
+                $archiveName = $this->buildPhotoArchiveName($event, $photo->getId(), $imageName);
+                $baseArchiveName = $archiveName;
+                $counter = 2;
+                while (isset($usedArchiveNames[$archiveName])) {
+                    $archiveName = $this->appendFilenameSuffix($baseArchiveName, $counter);
+                    ++$counter;
+                }
+
+                $usedArchiveNames[$archiveName] = true;
+                $photoFiles[] = [
+                    'path' => $path,
+                    'archive_name' => $archiveName,
+                ];
+            }
+        }
+
+        return $photoFiles;
+    }
+
+    private function buildPhotoArchiveName(Event $event, ?int $photoId, string $imageName): string
+    {
+        $eventId = $event->getId() ?? 0;
+        $eventDate = $event->getDate()?->format('Y-m-d') ?? 'без-даты';
+        $eventTitle = $this->sanitizeArchivePathPart($event->getTitle() ?? 'мероприятие');
+        $photoPrefix = null !== $photoId ? sprintf('photo-%d', $photoId) : 'photo';
+
+        return sprintf(
+            '%s_%d_%s/%s_%s',
+            $eventDate,
+            $eventId,
+            $eventTitle,
+            $photoPrefix,
+            basename($imageName)
+        );
+    }
+
+    private function sanitizeArchivePathPart(string $value): string
+    {
+        $value = preg_replace('/[^\p{L}\p{N}\-_ ]+/u', '', $value) ?? '';
+        $value = trim((string) preg_replace('/\s+/u', ' ', $value));
+
+        return '' === $value ? 'без-названия' : mb_substr($value, 0, 80);
+    }
+
+    private function appendFilenameSuffix(string $path, int $suffix): string
+    {
+        $directory = pathinfo($path, PATHINFO_DIRNAME);
+        $filename = pathinfo($path, PATHINFO_FILENAME);
+        $extension = pathinfo($path, PATHINFO_EXTENSION);
+        $suffixedFilename = sprintf('%s-%d', $filename, $suffix);
+
+        if ('' !== $extension) {
+            $suffixedFilename .= '.' . $extension;
+        }
+
+        return '.' === $directory ? $suffixedFilename : $directory . '/' . $suffixedFilename;
+    }
+
+    /**
+     * Creates a ZIP archive without ext-zip. Files are stored without compression,
+     * which is suitable for already-compressed JPEG/PNG report photos.
+     *
+     * @param array<int, array{path: string, archive_name: string}> $files
+     */
+    private function createStoredZipArchive(array $files): string
+    {
+        $zipPath = tempnam(sys_get_temp_dir(), 'event-photos-');
+        if (false === $zipPath) {
+            throw new \RuntimeException('Не удалось создать временный файл для архива фотографий.');
+        }
+
+        $handle = fopen($zipPath, 'wb');
+        if (false === $handle) {
+            @unlink($zipPath);
+            throw new \RuntimeException('Не удалось открыть временный файл для архива фотографий.');
+        }
+
+        $centralDirectory = [];
+        foreach ($files as $file) {
+            $path = $file['path'];
+            $archiveName = str_replace('\\', '/', $file['archive_name']);
+            $fileSize = filesize($path);
+            if (false === $fileSize) {
+                continue;
+            }
+
+            $crc = (int) hexdec(hash_file('crc32b', $path));
+            $offset = ftell($handle);
+            [$dosTime, $dosDate] = $this->buildDosDateTime(filemtime($path) ?: time());
+
+            fwrite($handle, pack(
+                'VvvvvvVVVvv',
+                0x04034b50,
+                20,
+                0x0800,
+                0,
+                $dosTime,
+                $dosDate,
+                $crc,
+                $fileSize,
+                $fileSize,
+                strlen($archiveName),
+                0
+            ));
+            fwrite($handle, $archiveName);
+
+            $source = fopen($path, 'rb');
+            if (false === $source) {
+                continue;
+            }
+
+            stream_copy_to_stream($source, $handle);
+            fclose($source);
+
+            $centralDirectory[] = [
+                'archive_name' => $archiveName,
+                'crc' => $crc,
+                'size' => $fileSize,
+                'dos_time' => $dosTime,
+                'dos_date' => $dosDate,
+                'offset' => $offset,
+            ];
+        }
+
+        $centralDirectoryOffset = ftell($handle);
+        foreach ($centralDirectory as $entry) {
+            fwrite($handle, pack(
+                'VvvvvvvVVVvvvvvVV',
+                0x02014b50,
+                20,
+                20,
+                0x0800,
+                0,
+                $entry['dos_time'],
+                $entry['dos_date'],
+                $entry['crc'],
+                $entry['size'],
+                $entry['size'],
+                strlen($entry['archive_name']),
+                0,
+                0,
+                0,
+                0,
+                0,
+                $entry['offset']
+            ));
+            fwrite($handle, $entry['archive_name']);
+        }
+
+        $centralDirectorySize = ftell($handle) - $centralDirectoryOffset;
+        fwrite($handle, pack(
+            'VvvvvVVv',
+            0x06054b50,
+            0,
+            0,
+            count($centralDirectory),
+            count($centralDirectory),
+            $centralDirectorySize,
+            $centralDirectoryOffset,
+            0
+        ));
+
+        fclose($handle);
+
+        return $zipPath;
+    }
+
+    /**
+     * @return array{int, int}
+     */
+    private function buildDosDateTime(int $timestamp): array
+    {
+        $parts = getdate($timestamp);
+        $year = max(1980, (int) $parts['year']);
+        $dosTime = ((int) $parts['hours'] << 11) | ((int) $parts['minutes'] << 5) | ((int) floor((int) $parts['seconds'] / 2));
+        $dosDate = (($year - 1980) << 9) | ((int) $parts['mon'] << 5) | (int) $parts['mday'];
+
+        return [$dosTime, $dosDate];
     }
 
     /**
