@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+     xmlns:content="http://purl.org/rss/1.0/modules/content/"
+     xmlns:media="http://search.yahoo.com/mrss/">
+    <channel>
+        <title>Отчеты по мероприятиям</title>
+        <link>{{ absolute_url(path('app_rss_reports')) }}</link>
+        <description>RSS-лента опубликованных отчетов по мероприятиям</description>
+        <language>ru-RU</language>
+        <lastBuildDate>{{ "now"|date('r') }}</lastBuildDate>
+        {% for publication in publications %}
+            {% set report = publication.eventReport %}
+            {% set event = report.event %}
+            <item>
+                <title><![CDATA[{{ event.title }}]]></title>
+                <link>{{ absolute_url(path('app_rss_reports')) }}</link>
+                <guid isPermaLink="false">rss-report-{{ publication.id }}</guid>
+                <pubDate>{{ publication.publishedAt ? publication.publishedAt|date('r') : publication.createdAt|date('r') }}</pubDate>
+                <description><![CDATA[{{ publication.preparedText|default(report.publicReportText)|nl2br }}]]></description>
+                <content:encoded><![CDATA[
+                    <p>{{ publication.preparedText|default(report.publicReportText)|nl2br }}</p>
+                    {% for photo in report.photos %}
+                        {% if photo.imageName %}
+                            <p><img src="{{ absolute_url('/uploads/photos/' ~ photo.imageName) }}" alt="Фото к отчету"></p>
+                        {% endif %}
+                    {% endfor %}
+                ]]></content:encoded>
+                {% for photo in report.photos %}
+                    {% if photo.imageName %}
+                        <media:content url="{{ absolute_url('/uploads/photos/' ~ photo.imageName) }}" medium="image"/>
+                    {% endif %}
+                {% endfor %}
+            </item>
+        {% endfor %}
+    </channel>
+</rss>
