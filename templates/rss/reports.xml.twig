@@ -7,7 +7,7 @@
         <link>{{ absolute_url(path('app_rss_reports')) }}</link>
         <description>RSS-лента опубликованных отчетов по мероприятиям</description>
         <language>ru-RU</language>
-        <lastBuildDate>{{ "now"|date('r', 'Asia/Irkutsk') }}</lastBuildDate>
+        <lastBuildDate>{{ "now"|date('r', 'Europe/Moscow') }}</lastBuildDate>
         {% for publication in publications %}
             {% set report = publication.eventReport %}
             {% set event = report.event %}
@@ -16,7 +16,7 @@
                 <title><![CDATA[{{ event.title }}]]></title>
                 <link>{{ absolute_url(path('app_rss_reports')) }}?report={{ report.id }}</link>
                 <guid isPermaLink="false">rss-report-{{ publication.id }}</guid>
-                <pubDate>{{ publication.publishedAt ? publication.publishedAt|date('r', 'Asia/Irkutsk') : publication.createdAt|date('r', 'Asia/Irkutsk') }}</pubDate>
+                <pubDate>{{ publication.publishedAt ? publication.publishedAt|date('r', 'Europe/Moscow') : publication.createdAt|date('r', 'Europe/Moscow') }}</pubDate>
                 <description><![CDATA[
                     {% if first_photo and first_photo.imageName %}
                         <img src="{{ absolute_url('/uploads/photos/' ~ first_photo.imageName) }}" />
