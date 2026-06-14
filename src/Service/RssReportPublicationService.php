@@ -11,6 +11,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 final class RssReportPublicationService
 {
     private readonly \DateTimeZone $timezoneObject;
+    private readonly \DateTimeZone $utcTimezoneObject;
 
     public function __construct(
         private readonly EventReportRepository $eventReportRepository,
@@ -20,6 +21,7 @@ final class RssReportPublicationService
         private readonly string $timezone,
     ) {
         $this->timezoneObject = new \DateTimeZone($this->timezone);
+        $this->utcTimezoneObject = new \DateTimeZone('UTC');
     }
 
     public function publishDailyReports(?\DateTimeImmutable $runAt = null, bool $dryRun = false): int
@@ -40,14 +42,16 @@ final class RssReportPublicationService
                 continue;
             }
 
+            $publishedAtUtc = $runAt->setTimezone($this->utcTimezoneObject);
+
             $publication = (new EventReportPublication())
                 ->setEventReport($report)
                 ->setPlatform(EventReportPublication::PLATFORM_RSS)
                 ->setStatus(EventReportPublication::STATUS_PUBLISHED)
                 ->setSourceText($report->getPublicReportText())
                 ->setPreparedText($report->getPublicReportText())
-                ->setCreatedAtValue($runAt)
-                ->setPublishedAt($runAt)
+                ->setCreatedAtValue($publishedAtUtc)
+                ->setPublishedAt($publishedAtUtc)
             ;
 
             $this->entityManager->persist($publication);
