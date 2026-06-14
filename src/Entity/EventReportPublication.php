@@ -13,6 +13,7 @@ class EventReportPublication
 {
     public const PLATFORM_RSS = 'rss';
     public const STATUS_PUBLISHED = 'published';
+    private const RSS_STORAGE_TIMEZONE = 'UTC';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -170,6 +171,11 @@ class EventReportPublication
         return $this->publishedAt;
     }
 
+    public function getRssPublishedAt(): ?\DateTimeImmutable
+    {
+        return self::reinterpretAsTimezone($this->publishedAt, self::RSS_STORAGE_TIMEZONE);
+    }
+
     public function setPublishedAt(?\DateTimeImmutable $publishedAt): static
     {
         $this->publishedAt = $publishedAt;
@@ -218,6 +224,11 @@ class EventReportPublication
         return $this->createdAt;
     }
 
+    public function getRssCreatedAt(): ?\DateTimeImmutable
+    {
+        return self::reinterpretAsTimezone($this->createdAt, self::RSS_STORAGE_TIMEZONE);
+    }
+
     public function setCreatedAtValue(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
@@ -242,5 +253,20 @@ class EventReportPublication
     public function setUpdatedAt(): void
     {
         $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    private static function reinterpretAsTimezone(?\DateTimeImmutable $value, string $timezone): ?\DateTimeImmutable
+    {
+        if (null === $value) {
+            return null;
+        }
+
+        $converted = \DateTimeImmutable::createFromFormat(
+            'Y-m-d H:i:s',
+            $value->format('Y-m-d H:i:s'),
+            new \DateTimeZone($timezone)
+        );
+
+        return false === $converted ? $value : $converted;
     }
 }
