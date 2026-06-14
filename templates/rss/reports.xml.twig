@@ -19,16 +19,16 @@
                 <guid isPermaLink="false">rss-report-{{ publication.id }}</guid>
                 <pubDate>{{ publication.rssPublishedAt ? publication.rssPublishedAt|date('r', 'Asia/Irkutsk') : publication.rssCreatedAt|date('r', 'Asia/Irkutsk') }}</pubDate>
                 <description><![CDATA[
-                    <p><strong>{{ event.title }}</strong></p>
+                    <p><b>{{ event.title }}</b></p>
                     {% if department and department.title %}
                         <p>{{ department.title }}</p>
                     {% endif %}
                     <p>{{ publication.preparedText|default(report.publicReportText)|nl2br }}</p>
-                    {% for photo in report.photos %}
-                        {% if photo.imageName %}
-                            <p><img src="{{ absolute_url('/uploads/photos/' ~ photo.imageName) }}" alt="Фото к отчету" /></p>
-                        {% endif %}
-                    {% endfor %}
+{#                    {% for photo in report.photos %}#}
+{#                        {% if photo.imageName %}#}
+{#                            <p><img src="{{ absolute_url('/uploads/photos/' ~ photo.imageName) }}" alt="Фото к отчету" /></p>#}
+{#                        {% endif %}#}
+{#                    {% endfor %}#}
                 ]]></description>
                 {% if first_photo and first_photo.imageName %}
                     <enclosure url="{{ absolute_url('/uploads/photos/' ~ first_photo.imageName) }}" length="512" type="image/jpeg"/>
