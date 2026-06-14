@@ -46,6 +46,7 @@ final class RssReportPublicationService
                 ->setStatus(EventReportPublication::STATUS_PUBLISHED)
                 ->setSourceText($report->getPublicReportText())
                 ->setPreparedText($report->getPublicReportText())
+                ->setCreatedAtValue($runAt)
                 ->setPublishedAt($runAt)
             ;
 

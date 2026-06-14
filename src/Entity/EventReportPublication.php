@@ -218,10 +218,19 @@ class EventReportPublication
         return $this->createdAt;
     }
 
+    public function setCreatedAtValue(\DateTimeImmutable $createdAt): static
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
     #[ORM\PrePersist]
     public function setCreatedAt(): void
     {
-        $this->createdAt = new \DateTimeImmutable();
+        if (null === $this->createdAt) {
+            $this->createdAt = new \DateTimeImmutable();
+        }
     }
 
     public function getUpdatedAt(): ?\DateTimeImmutable
