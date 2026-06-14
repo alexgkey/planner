@@ -19,7 +19,6 @@
                 <guid isPermaLink="false">rss-report-{{ publication.id }}</guid>
                 <pubDate>{{ publication.rssPublishedAt ? publication.rssPublishedAt|date('r', 'Asia/Irkutsk') : publication.rssCreatedAt|date('r', 'Asia/Irkutsk') }}</pubDate>
                 <description><![CDATA[
-                    <p><b>{{ event.title }}</b></p>
                     {% if department and department.title %}
                         <p>{{ department.title }}</p>
                     {% endif %}
