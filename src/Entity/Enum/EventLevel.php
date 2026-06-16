@@ -8,6 +8,7 @@ enum EventLevel: string
     case URBAN = 'urban';
     case DISTRICT = 'district';
     case REGIONAL = 'regional';
+    case PROVINCE = 'province';
     case NATIONAL = 'national';
     case INTERNATIONAL = 'international';
 
@@ -18,6 +19,7 @@ enum EventLevel: string
             self::URBAN => 'Городской',
             self::DISTRICT => 'Окружной',
             self::REGIONAL => 'Региональный',
+            self::PROVINCE => 'Областной',
             self::NATIONAL => 'Всероссийский',
             self::INTERNATIONAL => 'Международный',
         };

@@ -5,6 +5,7 @@ namespace App\Entity\Enum;
 enum EventDirection: string
 {
     case CULTURAL_MASS_EVENTS = 'cultural_mass_events';
+    case CULTURAL_EDUCATIONAL = 'cultural_educational';
     case FOLK_CULTURE_REVIVAL = 'folk_culture_revival';
     case PATRIOTIC_EDUCATION = 'patriotic_education';
     case MORAL_AESTHETIC_EDUCATION = 'moral_aesthetic_education';
@@ -20,6 +21,7 @@ enum EventDirection: string
     {
         return match ($this) {
             self::CULTURAL_MASS_EVENTS => 'Культурно-массовые мероприятия',
+            self::CULTURAL_EDUCATIONAL => 'Культурно-просветительские мероприятия',
             self::FOLK_CULTURE_REVIVAL => 'Возрождение и сохранение традиционной народной культуры',
             self::PATRIOTIC_EDUCATION => 'Гражданско-патриотическое воспитание',
             self::MORAL_AESTHETIC_EDUCATION => 'Нравственно-эстетическое воспитание',
