@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Audit\AuditAction;
+use App\Audit\AuditLogger;
 use App\Entity\Department;
 use App\Entity\Event;
 use App\Entity\Enum\EventStatus;
@@ -26,6 +28,11 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted(AppPermissions::EVENT_VIEW)]
 class EventController extends AbstractController
 {
+    public function __construct(
+        private readonly AuditLogger $auditLogger,
+    ) {
+    }
+
     #[Route(name: 'app_event_index', methods: ['GET'])]
     public function index(Request $request, EventRepository $eventRepository, DepartmentRepository $departmentRepository, EventFilterService $eventFilterService): Response
     {
@@ -41,6 +48,15 @@ class EventController extends AbstractController
         $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository, $eventFilterService);
         $events = $this->resolveSelectedExportEvents($request, $listing['events']);
         $rowsByDepartment = $this->groupEventsForExport($this->filterExportableEvents($events));
+
+        $this->auditLogger->logCurrentUser(
+            AuditAction::EVENT_EXPORTED_XLS,
+            'event',
+            null,
+            'events export',
+            null,
+            $this->buildExportAuditMetadata($listing, $events)
+        );
 
         $content = $this->renderView('event/export.xls.twig', [
             'rows_by_department' => $rowsByDepartment,
@@ -61,6 +77,15 @@ class EventController extends AbstractController
         $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository, $eventFilterService);
         $events = $this->filterExportableEvents($this->resolveSelectedExportEvents($request, $listing['events']));
         $this->sortEventsForPdfExport($events);
+
+        $this->auditLogger->logCurrentUser(
+            AuditAction::EVENT_EXPORTED_PDF,
+            'event',
+            null,
+            'events export pdf',
+            null,
+            $this->buildExportAuditMetadata($listing, $events)
+        );
 
         $headerDepartment = $this->resolvePdfDepartmentLabel($listing['department_options'], $listing['selected_department_ids']);
         $signatureDepartment = $this->resolvePdfSignatureDepartmentLabel($headerDepartment);
@@ -99,6 +124,15 @@ class EventController extends AbstractController
         $listing = $this->resolveEventListing($request, $eventRepository, $departmentRepository, $eventFilterService);
         $events = $this->filterExportableEvents($this->resolveSelectedExportEvents($request, $listing['events']));
         $this->sortEventsForPdfExport($events);
+
+        $this->auditLogger->logCurrentUser(
+            AuditAction::EVENT_EXPORTED_REPORTS_PDF,
+            'event',
+            null,
+            'event reports export pdf',
+            null,
+            $this->buildExportAuditMetadata($listing, $events)
+        );
 
         $headerDepartment = $this->resolvePdfDepartmentLabel($listing['department_options'], $listing['selected_department_ids']);
         $signatureDepartment = $this->resolvePdfSignatureDepartmentLabel($headerDepartment);
@@ -143,6 +177,17 @@ class EventController extends AbstractController
 
             return $this->redirectToRoute('app_event_index', $request->query->all());
         }
+
+        $this->auditLogger->logCurrentUser(
+            AuditAction::EVENT_EXPORTED_PHOTOS,
+            'event',
+            null,
+            'event photos export',
+            null,
+            $this->buildExportAuditMetadata($listing, $events) + [
+                'archived_photo_count' => count($photoFiles),
+            ]
+        );
 
         $zipPath = $this->createStoredZipArchive($photoFiles);
         $filename = sprintf('event-photos-%s.zip', (new \DateTimeImmutable())->format('Y-m-d-His'));
@@ -195,6 +240,16 @@ class EventController extends AbstractController
             $entityManager->persist($event);
             $entityManager->flush();
 
+            $this->auditLogger->logCurrentUser(
+                AuditAction::EVENT_CREATED,
+                'event',
+                $event->getId(),
+                $event->getTitle(),
+                [
+                    'after' => $this->auditLogger->snapshotEvent($event),
+                ]
+            );
+
             return $this->redirectToRoute('app_event_index', [], Response::HTTP_SEE_OTHER);
         }
 
@@ -233,6 +288,34 @@ class EventController extends AbstractController
             $entityManager->persist($event);
             $entityManager->flush();
 
+            $this->auditLogger->logCurrentUser(
+                AuditAction::EVENT_DUPLICATED,
+                'event',
+                $event->getId(),
+                $event->getTitle(),
+                [
+                    'after' => $this->auditLogger->snapshotEvent($event),
+                ],
+                [
+                    'source_event_id' => $sourceEvent->getId(),
+                    'source_event_title' => $sourceEvent->getTitle(),
+                    'copied_fields' => [
+                        'title',
+                        'venue',
+                        'eventLevel',
+                        'onOffLine',
+                        'eventDirection',
+                        'eventAccessibility',
+                        'targetAudience',
+                        'interaction',
+                        'responsible',
+                        'plannedVisitors',
+                        'note',
+                        'time',
+                    ],
+                ]
+            );
+
             return $this->redirectToRoute('app_event_show', ['id' => $event->getId()]);
         }
 
@@ -262,11 +345,23 @@ class EventController extends AbstractController
             $this->denyAccessUnlessGranted(AppPermissions::EVENT_MANAGE_OWN, $event);
         }
 
+        $beforeSnapshot = $this->auditLogger->snapshotEvent($event);
         $form = $this->createForm(EventType::class, $event);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $entityManager->flush();
+
+            $changes = $this->auditLogger->buildDiff($beforeSnapshot, $this->auditLogger->snapshotEvent($event));
+            if ([] !== $changes) {
+                $this->auditLogger->logCurrentUser(
+                    AuditAction::EVENT_UPDATED,
+                    'event',
+                    $event->getId(),
+                    $event->getTitle(),
+                    $changes
+                );
+            }
 
             return $this->redirectToRoute('app_event_index', [], Response::HTTP_SEE_OTHER);
         }
@@ -285,8 +380,21 @@ class EventController extends AbstractController
         }
 
         if ($this->isCsrfTokenValid('cancel'.$event->getId(), $request->getPayload()->getString('_token'))) {
+            $beforeStatus = $event->getStatus()->value;
             $event->setStatus(EventStatus::CANCELLED);
             $entityManager->flush();
+            $this->auditLogger->logCurrentUser(
+                AuditAction::EVENT_CANCELLED,
+                'event',
+                $event->getId(),
+                $event->getTitle(),
+                [
+                    'status' => [
+                        'from' => $beforeStatus,
+                        'to' => $event->getStatus()->value,
+                    ],
+                ]
+            );
             $this->addFlash('warning', 'Мероприятие было отменено.');
         }
 
@@ -298,8 +406,21 @@ class EventController extends AbstractController
     public function restore(Request $request, Event $event, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('restore'.$event->getId(), $request->getPayload()->getString('_token'))) {
+            $beforeStatus = $event->getStatus()->value;
             $event->setStatus(EventStatus::PLANNED);
             $entityManager->flush();
+            $this->auditLogger->logCurrentUser(
+                AuditAction::EVENT_RESTORED,
+                'event',
+                $event->getId(),
+                $event->getTitle(),
+                [
+                    'status' => [
+                        'from' => $beforeStatus,
+                        'to' => $event->getStatus()->value,
+                    ],
+                ]
+            );
             $this->addFlash('success', 'Мероприятие было восстановлено.');
         }
 
@@ -316,6 +437,21 @@ class EventController extends AbstractController
         if ($this->isCsrfTokenValid('delete'.$event->getId(), $request->getPayload()->getString('_token'))) {
             $event->setIsActive(false);
             $entityManager->flush();
+            $this->auditLogger->logCurrentUser(
+                AuditAction::EVENT_DELETED,
+                'event',
+                $event->getId(),
+                $event->getTitle(),
+                [
+                    'isActive' => [
+                        'from' => true,
+                        'to' => false,
+                    ],
+                ],
+                [
+                    'soft_delete' => true,
+                ]
+            );
         }
 
         return $this->redirectToRoute('app_event_index', [], Response::HTTP_SEE_OTHER);
@@ -753,6 +889,28 @@ class EventController extends AbstractController
             || $this->isGranted(AppPermissions::EVENT_MANAGE_OWN);
     }
 
+    /**
+     * @param Event[] $events
+     * @param array{
+     *     selected_department_ids: int[],
+     *     selected_months: string[],
+     *     include_undated: bool
+     * } $listing
+     */
+    private function buildExportAuditMetadata(array $listing, array $events): array
+    {
+        return [
+            'selected_event_ids' => array_values(array_filter(
+                array_map(static fn (Event $event): ?int => $event->getId(), $events),
+                static fn (?int $id): bool => null !== $id
+            )),
+            'selected_count' => count($events),
+            'department_ids' => $listing['selected_department_ids'],
+            'months' => $listing['selected_months'],
+            'include_undated' => $listing['include_undated'],
+        ];
+    }
+
     private function resolveDuplicateDepartment(Event $sourceEvent): ?Department
     {
         if ($this->isGranted(AppPermissions::EVENT_ADMIN) || $this->isGranted(AppPermissions::EVENT_MANAGE_ANY)) {
@@ -781,3 +939,4 @@ class EventController extends AbstractController
             ->setStatus(EventStatus::PLANNED);
     }
 }
+

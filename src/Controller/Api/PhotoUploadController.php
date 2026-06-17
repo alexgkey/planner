@@ -2,6 +2,8 @@
 
 namespace App\Controller\Api;
 
+use App\Audit\AuditAction;
+use App\Audit\AuditLogger;
 use App\Entity\Photo;
 use App\Security\Voter\EventVoter;
 use Doctrine\ORM\EntityManagerInterface;
@@ -15,7 +17,7 @@ class PhotoUploadController extends AbstractController
 {
     private string $tempPath;
 
-    public function __construct(string $kernelProjectDir)
+    public function __construct(string $kernelProjectDir, private readonly AuditLogger $auditLogger)
     {
         $this->tempPath = $kernelProjectDir . '/var/uploads/tmp';
     }
@@ -59,8 +61,24 @@ class PhotoUploadController extends AbstractController
             return new Response('Access Denied', Response::HTTP_FORBIDDEN);
         }
 
+        $photoSnapshot = $this->auditLogger->snapshotPhoto($photo);
+        $reportId = $photo->getReport()?->getId();
+
         $entityManager->remove($photo);
         $entityManager->flush();
+
+        $this->auditLogger->logCurrentUser(
+            AuditAction::EVENT_REPORT_PHOTO_DELETED,
+            'event',
+            $event->getId(),
+            $event->getTitle(),
+            null,
+            [
+                'report_id' => $reportId,
+                'photo_id' => $photoSnapshot['photoId'],
+                'image_name' => $photoSnapshot['imageName'],
+            ]
+        );
 
         return new Response('', Response::HTTP_NO_CONTENT);
     }

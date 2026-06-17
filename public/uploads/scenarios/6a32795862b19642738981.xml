@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ns:Documents xmlns:tc="http://fsrar.ru/WEGAIS/Ticket" xmlns:oref="http://fsrar.ru/WEGAIS/ClientRef" xmlns:ns="http://fsrar.ru/WEGAIS/WB_DOC_SINGLE_01" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Version="1.0">
+  <ns:Owner>
+    <ns:FSRAR_ID>3463047</ns:FSRAR_ID>
+  </ns:Owner>
+  <ns:Document>
+    <ns:Ticket>
+      <tc:TicketDate>2026-06-13T19:01:36.4576717</tc:TicketDate>
+      <tc:Identity />
+      <tc:DocId>161267C8-B036-4A60-BC7D-C9E4D9F7085B</tc:DocId>
+      <tc:TransportId>09566fad-675e-4013-b919-22831fed6f3b</tc:TransportId>
+      <tc:RegID />
+      <tc:DocHash />
+      <tc:DocType>QueryRestsShop_v2</tc:DocType>
+      <tc:Result>
+        <tc:Conclusion>Rejected</tc:Conclusion>
+        <tc:ConclusionDate>2026-06-13T19:01:36.4576717</tc:ConclusionDate>
+        <tc:Comments>Обработка запросов по типу QueryRestsShop производится не чаще 1-го раза в 48 часов Владелец ["030001000392"]. 
+</tc:Comments>
+      </tc:Result>
+    </ns:Ticket>
+  </ns:Document>
+</ns:Documents>
