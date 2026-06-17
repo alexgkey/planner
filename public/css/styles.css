@@ -87,3 +87,22 @@ body {
 .fc-daygrid-event div[style*="color"] {
     color: rgba(255, 255, 255, 0.8) !important; /* Делаем текст отдела полупрозрачным белым */
 }
+.employee-table__heading {
+    white-space: nowrap;
+}
+
+.employee-table__header {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.employee-table__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.employee-table__menu {
+    width: min(20rem, calc(100vw - 2rem));
+}

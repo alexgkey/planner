@@ -12,6 +12,9 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class EmployeeRepository extends ServiceEntityRepository
 {
+    public const SORT_FIELD_FIO = 'fio';
+    public const SORT_FIELD_DEPARTMENT = 'department';
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Employee::class);
@@ -22,12 +25,7 @@ class EmployeeRepository extends ServiceEntityRepository
      */
     public function findActive(): array
     {
-        return $this->createQueryBuilder('e')
-            ->andWhere('e.isActive = :active')
-            ->setParameter('active', true)
-            ->orderBy('e.fio', 'ASC')
-            ->getQuery()
-            ->getResult();
+        return $this->findActiveForListing();
     }
 
     /**
@@ -35,15 +33,62 @@ class EmployeeRepository extends ServiceEntityRepository
      */
     public function findActiveByDepartment(?Department $department): array
     {
-        $qb = $this->createQueryBuilder('e')
-            ->andWhere('e.isActive = :active')
-            ->setParameter('active', true)
-            ->orderBy('e.fio', 'ASC');
-
         if (null !== $department) {
+            return $this->findActiveForListing($department);
+        }
+
+        return [];
+    }
+
+    /**
+     * @return Employee[]
+     */
+    public function findActiveForListing(
+        ?Department $scopeDepartment = null,
+        ?string $fioFilter = null,
+        ?int $departmentIdFilter = null,
+        string $sortField = self::SORT_FIELD_FIO,
+        string $sortDirection = 'ASC'
+    ): array {
+        $qb = $this->createQueryBuilder('e')
+            ->leftJoin('e.department', 'd')
+            ->addSelect('d')
+            ->andWhere('e.isActive = :active')
+            ->setParameter('active', true);
+
+        if (null !== $scopeDepartment) {
             $qb
-                ->andWhere('e.department = :department')
-                ->setParameter('department', $department);
+                ->andWhere('e.department = :scopeDepartment')
+                ->setParameter('scopeDepartment', $scopeDepartment);
+        }
+
+        if (null !== $fioFilter && '' !== $fioFilter) {
+            $qb
+                ->andWhere('LOWER(e.fio) LIKE LOWER(:fioFilter)')
+                ->setParameter('fioFilter', '%'.$fioFilter.'%');
+        }
+
+        if (null !== $departmentIdFilter) {
+            $qb
+                ->andWhere('d.id = :departmentIdFilter')
+                ->setParameter('departmentIdFilter', $departmentIdFilter);
+        }
+
+        $sortField = match ($sortField) {
+            self::SORT_FIELD_DEPARTMENT => self::SORT_FIELD_DEPARTMENT,
+            default => self::SORT_FIELD_FIO,
+        };
+        $sortDirection = 'DESC' === strtoupper($sortDirection) ? 'DESC' : 'ASC';
+
+        if (self::SORT_FIELD_DEPARTMENT === $sortField) {
+            $qb
+                ->addOrderBy('CASE WHEN d.title IS NULL THEN 1 ELSE 0 END', 'ASC')
+                ->addOrderBy('d.title', $sortDirection)
+                ->addOrderBy('e.fio', 'ASC');
+        } else {
+            $qb
+                ->addOrderBy('e.fio', $sortDirection)
+                ->addOrderBy('d.title', 'ASC');
         }
 
         return $qb->getQuery()->getResult();

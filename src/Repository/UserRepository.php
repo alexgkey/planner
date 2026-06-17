@@ -20,6 +20,9 @@ use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
  */
 class UserRepository extends ServiceEntityRepository implements PasswordUpgraderInterface
 {
+    public const SORT_FIELD_FIO = 'fio';
+    public const SORT_FIELD_DEPARTMENT = 'department';
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, User::class);
@@ -45,13 +48,59 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
      */
     public function findByDepartment(Department $department): array
     {
-        return $this->createQueryBuilder('u')
+        return $this->findForListing($department);
+    }
+
+    /**
+     * @return User[]
+     */
+    public function findForListing(
+        ?Department $scopeDepartment = null,
+        ?string $fioFilter = null,
+        ?int $departmentIdFilter = null,
+        string $sortField = self::SORT_FIELD_FIO,
+        string $sortDirection = 'ASC'
+    ): array {
+        $qb = $this->createQueryBuilder('u')
             ->innerJoin('u.employee', 'e')
-            ->andWhere('e.department = :department')
-            ->setParameter('department', $department)
-            ->orderBy('e.fio', 'ASC')
-            ->getQuery()
-            ->getResult()
-        ;
+            ->leftJoin('e.department', 'd')
+            ->addSelect('e', 'd');
+
+        if (null !== $scopeDepartment) {
+            $qb
+                ->andWhere('e.department = :scopeDepartment')
+                ->setParameter('scopeDepartment', $scopeDepartment);
+        }
+
+        if (null !== $fioFilter && '' !== $fioFilter) {
+            $qb
+                ->andWhere('LOWER(e.fio) LIKE LOWER(:fioFilter)')
+                ->setParameter('fioFilter', '%'.$fioFilter.'%');
+        }
+
+        if (null !== $departmentIdFilter) {
+            $qb
+                ->andWhere('d.id = :departmentIdFilter')
+                ->setParameter('departmentIdFilter', $departmentIdFilter);
+        }
+
+        $sortField = match ($sortField) {
+            self::SORT_FIELD_DEPARTMENT => self::SORT_FIELD_DEPARTMENT,
+            default => self::SORT_FIELD_FIO,
+        };
+        $sortDirection = 'DESC' === strtoupper($sortDirection) ? 'DESC' : 'ASC';
+
+        if (self::SORT_FIELD_DEPARTMENT === $sortField) {
+            $qb
+                ->addOrderBy('CASE WHEN d.title IS NULL THEN 1 ELSE 0 END', 'ASC')
+                ->addOrderBy('d.title', $sortDirection)
+                ->addOrderBy('e.fio', 'ASC');
+        } else {
+            $qb
+                ->addOrderBy('e.fio', $sortDirection)
+                ->addOrderBy('d.title', 'ASC');
+        }
+
+        return $qb->getQuery()->getResult();
     }
 }

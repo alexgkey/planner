@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Form\UserType;
+use App\Repository\DepartmentRepository;
 use App\Repository\UserRepository;
 use App\Security\Permissions\AppPermissions;
 use Doctrine\ORM\EntityManagerInterface;
@@ -24,34 +25,61 @@ class UserController extends AbstractController
     }
 
     #[Route(name: 'app_user_index', methods: ['GET'])]
-    public function index(UserRepository $userRepository): Response
-    {
+    public function index(
+        Request $request,
+        UserRepository $userRepository,
+        DepartmentRepository $departmentRepository
+    ): Response {
         $currentUser = $this->getUser();
         $users = [];
+        $sortField = $request->query->getString('sort_field', UserRepository::SORT_FIELD_FIO);
+        $sortDirection = $request->query->getString('sort_direction', 'ASC');
+        $fioFilter = trim($request->query->getString('fio_filter', ''));
+        $departmentFilter = $request->query->get('department_filter');
+        $departmentFilterId = is_scalar($departmentFilter) && '' !== trim((string) $departmentFilter)
+            ? (int) $departmentFilter
+            : null;
+        $availableDepartments = [];
 
         if ($this->isGranted(AppPermissions::USER_ADMIN)) {
-            // Админ видит всех
-            $users = $userRepository->findAll();
+            $users = $userRepository->findForListing(
+                null,
+                '' !== $fioFilter ? $fioFilter : null,
+                $departmentFilterId,
+                $sortField,
+                $sortDirection
+            );
+            $availableDepartments = $departmentRepository->findActive();
         } elseif ($this->isGranted(AppPermissions::USER_VIEW_ALL)) {
-            // Пользователь с правом VIEW_ALL видит всех в своем отделе
-            $department = $currentUser->getEmployee()?->getDepartment();
-            if ($department) {
-                $users = $userRepository->findByDepartment($department);
-            } else {
-                $users = [$currentUser]; // Если у самого нет отдела, видит только себя
+            $department = $currentUser?->getEmployee()?->getDepartment();
+            if (null !== $department) {
+                $users = $userRepository->findForListing(
+                    $department,
+                    '' !== $fioFilter ? $fioFilter : null,
+                    $departmentFilterId,
+                    $sortField,
+                    $sortDirection
+                );
+                $availableDepartments = [$department];
+            } elseif (null !== $currentUser) {
+                $users = [$currentUser];
             }
-        } elseif ($this->isGranted(AppPermissions::USER_VIEW)) {
-            // Пользователь с базовым правом видит только себя
+        } elseif ($this->isGranted(AppPermissions::USER_VIEW) && null !== $currentUser) {
             $users = [$currentUser];
         }
 
         return $this->render('user/index.html.twig', [
             'users' => $users,
+            'available_departments' => $availableDepartments,
+            'current_sort_field' => $sortField,
+            'current_sort_direction' => 'DESC' === strtoupper($sortDirection) ? 'DESC' : 'ASC',
+            'current_fio_filter' => $fioFilter,
+            'current_department_filter' => $departmentFilterId,
         ]);
     }
 
     #[Route('/new', name: 'app_user_new', methods: ['GET', 'POST'])]
-    #[IsGranted(AppPermissions::USER_ADMIN)] // Только админ может создавать новых пользователей
+    #[IsGranted(AppPermissions::USER_ADMIN)]
     public function new(Request $request, EntityManagerInterface $entityManager): Response
     {
         $user = new User();
@@ -80,7 +108,6 @@ class UserController extends AbstractController
     #[Route('/{id}', name: 'app_user_show', methods: ['GET'])]
     public function show(User $user): Response
     {
-        // Voter проверит, можно ли смотреть этого пользователя
         $this->denyAccessUnlessGranted(AppPermissions::USER_VIEW, $user);
 
         return $this->render('user/show.html.twig', [
@@ -91,13 +118,10 @@ class UserController extends AbstractController
     #[Route('/{id}/edit', name: 'app_user_edit', methods: ['GET', 'POST'])]
     public function edit(Request $request, User $user, EntityManagerInterface $entityManager): Response
     {
-        // Voter проверит, можно ли редактировать этого пользователя
         if ($this->isGranted(AppPermissions::USER_MANAGE_ALL, $user)) {
-            // Редактирование в рамках отдела
         } elseif ($this->isGranted(AppPermissions::USER_MANAGE_OWN, $user)) {
-            // Редактирование своего профиля
         } else {
-            $this->denyAccessUnlessGranted(AppPermissions::USER_ADMIN, $user); // Или админ
+            $this->denyAccessUnlessGranted(AppPermissions::USER_ADMIN, $user);
         }
 
         $form = $this->createForm(UserType::class, $user);
@@ -122,7 +146,7 @@ class UserController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_user_delete', methods: ['POST'])]
-    #[IsGranted(AppPermissions::USER_ADMIN)] // Только админ может удалять
+    #[IsGranted(AppPermissions::USER_ADMIN)]
     public function delete(Request $request, User $user, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete'.$user->getId(), $request->getPayload()->getString('_token'))) {

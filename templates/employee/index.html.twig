@@ -21,39 +21,190 @@
         {% endif %}
     </div>
 
+    {% set current_query = app.request.query.all %}
+    {% set can_filter_department = available_departments|length > 0 %}
+
     <div class="card shadow-sm">
         <div class="card-body">
-            <table class="table table-striped align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>Ф.И.О.</th>
-                        <th>Отдел</th>
-                        <th>Телефон</th>
-                        <th>Аккаунт</th>
-                        <th class="text-end">Действия</th>
-                    </tr>
-                </thead>
-                <tbody>
-                {% for employee in employees %}
-                    <tr>
-                        <td>{{ employee.fio }}</td>
-                        <td>{{ employee.department ? employee.department.title : '—' }}</td>
-                        <td>{{ employee.phone ?: '—' }}</td>
-                        <td>{{ employee.userAccount ? employee.userAccount.email : 'Нет' }}</td>
-                        <td class="text-end">
-                            <a href="{{ path('app_employee_show', {'id': employee.id}) }}" class="btn btn-sm btn-outline-secondary">Просмотр</a>
-                            {% if is_granted('EMPLOYEE_EDIT', employee) %}
-                                <a href="{{ path('app_employee_edit', {'id': employee.id}) }}" class="btn btn-sm btn-outline-primary">Редактировать</a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="5" class="text-center text-muted py-4">Нет сотрудников</td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+            <div class="table-responsive" style="min-height: 300px">
+                <table class="table table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="employee-table__heading">
+                                <div class="employee-table__header">
+                                    <span>ФИО</span>
+                                    <div class="dropdown">
+                                        <button
+                                            class="btn btn-sm btn-outline-secondary employee-table__toggle"
+                                            type="button"
+                                            data-bs-toggle="dropdown"
+                                            aria-expanded="false"
+                                        >
+                                            <i class="bi bi-funnel"></i>
+                                            {% if current_fio_filter or current_sort_field == 'fio' %}
+                                                <i class="bi {{ current_sort_field == 'fio' and current_sort_direction == 'DESC' ? 'bi-sort-down' : 'bi-sort-down-alt' }}"></i>
+                                            {% else %}
+                                                <i class="bi bi-chevron-down"></i>
+                                            {% endif %}
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-end p-3 employee-table__menu">
+                                            <div class="d-grid gap-2 mb-3">
+                                                <a
+                                                    href="{{ path('app_employee_index', current_query|merge({sort_field: 'fio', sort_direction: 'ASC'})) }}"
+                                                    class="btn btn-sm btn-outline-primary text-start"
+                                                >
+                                                    <i class="bi bi-sort-alpha-down me-1"></i> Сортировать от А до Я
+                                                </a>
+                                                <a
+                                                    href="{{ path('app_employee_index', current_query|merge({sort_field: 'fio', sort_direction: 'DESC'})) }}"
+                                                    class="btn btn-sm btn-outline-primary text-start"
+                                                >
+                                                    <i class="bi bi-sort-alpha-down-alt me-1"></i> Сортировать от Я до А
+                                                </a>
+                                            </div>
+
+                                            <form method="get" action="{{ path('app_employee_index') }}" class="d-grid gap-2">
+                                                {% if current_sort_field %}
+                                                    <input type="hidden" name="sort_field" value="{{ current_sort_field }}">
+                                                {% endif %}
+                                                {% if current_sort_direction %}
+                                                    <input type="hidden" name="sort_direction" value="{{ current_sort_direction }}">
+                                                {% endif %}
+                                                {% if current_department_filter is not null %}
+                                                    <input type="hidden" name="department_filter" value="{{ current_department_filter }}">
+                                                {% endif %}
+
+                                                <div>
+                                                    <label for="fio-filter" class="form-label small text-muted mb-1">Фильтр по ФИО</label>
+                                                    <input
+                                                        id="fio-filter"
+                                                        type="text"
+                                                        name="fio_filter"
+                                                        value="{{ current_fio_filter }}"
+                                                        class="form-control form-control-sm"
+                                                        placeholder="Начните вводить ФИО"
+                                                    >
+                                                </div>
+
+                                                <div class="d-flex gap-2">
+                                                    <button type="submit" class="btn btn-sm btn-primary flex-grow-1">Применить</button>
+                                                    <a
+                                                        href="{{ path('app_employee_index', current_query|merge({fio_filter: ''})) }}"
+                                                        class="btn btn-sm btn-outline-secondary"
+                                                    >
+                                                        Сброс
+                                                    </a>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </th>
+                            <th class="employee-table__heading">
+                                <div class="employee-table__header">
+                                    <span>Отдел</span>
+                                    <div class="dropdown">
+                                        <button
+                                            class="btn btn-sm btn-outline-secondary employee-table__toggle"
+                                            type="button"
+                                            data-bs-toggle="dropdown"
+                                            aria-expanded="false"
+                                        >
+                                            <i class="bi bi-funnel"></i>
+                                            {% if current_department_filter is not null or current_sort_field == 'department' %}
+                                                <i class="bi {{ current_sort_field == 'department' and current_sort_direction == 'DESC' ? 'bi-sort-down' : 'bi-sort-down-alt' }}"></i>
+                                            {% else %}
+                                                <i class="bi bi-chevron-down"></i>
+                                            {% endif %}
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-end p-3 employee-table__menu">
+                                            <div class="d-grid gap-2 mb-3">
+                                                <a
+                                                    href="{{ path('app_employee_index', current_query|merge({sort_field: 'department', sort_direction: 'ASC'})) }}"
+                                                    class="btn btn-sm btn-outline-primary text-start"
+                                                >
+                                                    <i class="bi bi-sort-alpha-down me-1"></i> Сортировать от А до Я
+                                                </a>
+                                                <a
+                                                    href="{{ path('app_employee_index', current_query|merge({sort_field: 'department', sort_direction: 'DESC'})) }}"
+                                                    class="btn btn-sm btn-outline-primary text-start"
+                                                >
+                                                    <i class="bi bi-sort-alpha-down-alt me-1"></i> Сортировать от Я до А
+                                                </a>
+                                            </div>
+
+                                            <form method="get" action="{{ path('app_employee_index') }}" class="d-grid gap-2">
+                                                {% if current_sort_field %}
+                                                    <input type="hidden" name="sort_field" value="{{ current_sort_field }}">
+                                                {% endif %}
+                                                {% if current_sort_direction %}
+                                                    <input type="hidden" name="sort_direction" value="{{ current_sort_direction }}">
+                                                {% endif %}
+                                                {% if current_fio_filter %}
+                                                    <input type="hidden" name="fio_filter" value="{{ current_fio_filter }}">
+                                                {% endif %}
+
+                                                <div>
+                                                    <label for="department-filter" class="form-label small text-muted mb-1">Фильтр по отделу</label>
+                                                    <select
+                                                        id="department-filter"
+                                                        name="department_filter"
+                                                        class="form-select form-select-sm"
+                                                        {% if not can_filter_department %}disabled{% endif %}
+                                                    >
+                                                        <option value="">Все отделы</option>
+                                                        {% for department in available_departments %}
+                                                            <option
+                                                                value="{{ department.id }}"
+                                                                {% if current_department_filter is not null and current_department_filter == department.id %}selected{% endif %}
+                                                            >
+                                                                {{ department.title }}
+                                                            </option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+
+                                                <div class="d-flex gap-2">
+                                                    <button type="submit" class="btn btn-sm btn-primary flex-grow-1" {% if not can_filter_department %}disabled{% endif %}>Применить</button>
+                                                    <a
+                                                        href="{{ path('app_employee_index', current_query|merge({department_filter: ''})) }}"
+                                                        class="btn btn-sm btn-outline-secondary"
+                                                    >
+                                                        Сброс
+                                                    </a>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </th>
+                            <th>Телефон</th>
+                            <th>Аккаунт</th>
+                            <th class="text-end">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for employee in employees %}
+                        <tr>
+                            <td>{{ employee.fio }}</td>
+                            <td>{{ employee.department ? employee.department.title : '-' }}</td>
+                            <td>{{ employee.phone ?: '-' }}</td>
+                            <td>{{ employee.userAccount ? employee.userAccount.email : 'Нет' }}</td>
+                            <td class="text-end">
+                                <a href="{{ path('app_employee_show', {'id': employee.id}) }}" class="btn btn-sm btn-outline-secondary">Просмотр</a>
+                                {% if is_granted('EMPLOYEE_EDIT', employee) %}
+                                    <a href="{{ path('app_employee_edit', {'id': employee.id}) }}" class="btn btn-sm btn-outline-primary">Редактировать</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">Нет сотрудников</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

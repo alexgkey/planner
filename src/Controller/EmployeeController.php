@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Employee;
 use App\Form\EmployeeType;
+use App\Repository\DepartmentRepository;
 use App\Repository\EmployeeRepository;
 use App\Security\Permissions\AppPermissions;
 use App\Security\Voter\EmployeeVoter;
@@ -19,22 +20,55 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class EmployeeController extends AbstractController
 {
     #[Route('/', name: 'app_employee_index', methods: ['GET'])]
-    public function index(EmployeeRepository $employeeRepository): Response
+    public function index(
+        Request $request,
+        EmployeeRepository $employeeRepository,
+        DepartmentRepository $departmentRepository
+    ): Response
     {
         $currentEmployee = $this->getUser()?->getEmployee();
         $currentDepartment = $currentEmployee?->getDepartment();
+        $sortField = $request->query->getString('sort_field', EmployeeRepository::SORT_FIELD_FIO);
+        $sortDirection = $request->query->getString('sort_direction', 'ASC');
+        $fioFilter = trim($request->query->getString('fio_filter', ''));
+        $departmentFilter = $request->query->get('department_filter');
+        $departmentFilterId = is_scalar($departmentFilter) && '' !== trim((string) $departmentFilter)
+            ? (int) $departmentFilter
+            : null;
+        $availableDepartments = [];
 
         $employees = [];
         if ($this->isGranted(AppPermissions::EMPLOYEE_ADMIN) || $this->isGranted(AppPermissions::EMPLOYEE_VIEW_ANY) || $this->isGranted(AppPermissions::EMPLOYEE_MANAGE_ANY)) {
-            $employees = $employeeRepository->findActive();
+            $employees = $employeeRepository->findActiveForListing(
+                null,
+                '' !== $fioFilter ? $fioFilter : null,
+                $departmentFilterId,
+                $sortField,
+                $sortDirection
+            );
+            $availableDepartments = $departmentRepository->findActive();
         } elseif ($this->isGranted(AppPermissions::EMPLOYEE_VIEW_DEPARTMENT) || $this->isGranted(AppPermissions::EMPLOYEE_MANAGE_DEPARTMENT)) {
-            $employees = $employeeRepository->findActiveByDepartment($currentDepartment);
+            if (null !== $currentDepartment) {
+                $employees = $employeeRepository->findActiveForListing(
+                    $currentDepartment,
+                    '' !== $fioFilter ? $fioFilter : null,
+                    $departmentFilterId,
+                    $sortField,
+                    $sortDirection
+                );
+                $availableDepartments = [$currentDepartment];
+            }
         } elseif (null !== $currentEmployee && $currentEmployee->isActive()) {
             $employees = [$currentEmployee];
         }
 
         return $this->render('employee/index.html.twig', [
             'employees' => $employees,
+            'available_departments' => $availableDepartments,
+            'current_sort_field' => $sortField,
+            'current_sort_direction' => 'DESC' === strtoupper($sortDirection) ? 'DESC' : 'ASC',
+            'current_fio_filter' => $fioFilter,
+            'current_department_filter' => $departmentFilterId,
             'show_department_scope' => $this->isGranted(AppPermissions::EMPLOYEE_VIEW_DEPARTMENT)
                 || $this->isGranted(AppPermissions::EMPLOYEE_VIEW_ANY)
                 || $this->isGranted(AppPermissions::EMPLOYEE_MANAGE_DEPARTMENT)
