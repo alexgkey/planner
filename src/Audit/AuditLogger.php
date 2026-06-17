@@ -6,6 +6,7 @@ use App\Entity\AuditLog;
 use App\Entity\Event;
 use App\Entity\EventReport;
 use App\Entity\Photo;
+use App\Entity\TimesheetEntry;
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -123,6 +124,20 @@ class AuditLogger
         return [
             'photoId' => $photo->getId(),
             'imageName' => $photo->getImageName(),
+        ];
+    }
+
+    public function snapshotTimesheetEntry(TimesheetEntry $entry): array
+    {
+        return [
+            'employeeId' => $entry->getEmployee()?->getId(),
+            'employeeFio' => $entry->getEmployee()?->getFio(),
+            'departmentId' => $entry->getEmployee()?->getDepartment()?->getId(),
+            'departmentTitle' => $entry->getEmployee()?->getDepartment()?->getTitle(),
+            'workDate' => $entry->getWorkDate()?->format('Y-m-d'),
+            'status' => $entry->getStatus()->value,
+            'statusCode' => $entry->getStatus()->getCode(),
+            'statusLabel' => $entry->getStatus()->getLabel(),
         ];
     }
 

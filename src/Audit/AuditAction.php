@@ -21,6 +21,10 @@ final class AuditAction
     public const EVENT_REPORT_PHOTO_DELETED = 'event_report.photo_deleted';
     public const EVENT_REPORT_SCENARIO_DOWNLOADED = 'event_report.scenario_downloaded';
 
+    public const TIMESHEET_ENTRY_CREATED = 'timesheet_entry.created';
+    public const TIMESHEET_ENTRY_UPDATED = 'timesheet_entry.updated';
+    public const TIMESHEET_ENTRY_CLEARED = 'timesheet_entry.cleared';
+
     public const AUTH_LOGIN_SUCCESS = 'auth.login_success';
     public const AUTH_LOGIN_FAILURE = 'auth.login_failure';
     public const AUTH_LOGOUT = 'auth.logout';

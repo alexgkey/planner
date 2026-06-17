@@ -51,7 +51,6 @@
 
                 @media (min-width: 768px) {
                     .sidebar {
-                        /*position: fixed;*/
                         top: 48px;
                         bottom: 0;
                         left: 0;
@@ -91,8 +90,7 @@
     <body>
     {% if app.user %}
         {% set current_route = app.request.attributes.get('_route') %}
-        {% set is_events_route = current_route starts with 'app_event_' %}
-        {% set home_route = is_granted(Permissions.EVENT_VIEW) ? path('app_event_index') : (is_granted(Permissions.DEPARTMENT_VIEW) ? path('app_department_index') : (is_granted(Permissions.EMPLOYEE_VIEW) ? path('app_employee_index') : (is_granted(Permissions.USER_VIEW) ? path('app_user_index') : '#'))) %}
+        {% set home_route = is_granted(Permissions.EVENT_VIEW) ? path('app_event_index') : (is_granted(Permissions.TIMESHEET_VIEW) ? path('app_timesheet_index') : (is_granted(Permissions.DEPARTMENT_VIEW) ? path('app_department_index') : (is_granted(Permissions.EMPLOYEE_VIEW) ? path('app_employee_index') : (is_granted(Permissions.USER_VIEW) ? path('app_user_index') : '#')))) %}
 
         <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow-sm">
             <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" href="{{ home_route }}">Планировщик</a>
@@ -116,11 +114,13 @@
                                     </a>
                                 </li>
                             {% endif %}
+
                             {% if is_granted(Permissions.EVENT_ADMIN) %}
                                 <a href="{{ path('app_event_analytics', app.request.query.all) }}" class="nav-link {% if current_route starts with 'app_event_analytics' %}active{% endif %}">
                                     <i class="bi bi-bar-chart-line me-2"></i>Аналитика
                                 </a>
                             {% endif %}
+
                             {% if is_granted(Permissions.DEPARTMENT_VIEW) %}
                                 <li class="nav-item">
                                     <a href="{{ path('app_department_index') }}" class="nav-link {% if current_route starts with 'app_department_' %}active{% endif %}">
@@ -133,6 +133,14 @@
                                 <li class="nav-item">
                                     <a href="{{ path('app_employee_index') }}" class="nav-link {% if current_route starts with 'app_employee_' %}active{% endif %}">
                                         <i class="bi bi-people me-2"></i>Сотрудники
+                                    </a>
+                                </li>
+                            {% endif %}
+
+                            {% if is_granted(Permissions.TIMESHEET_VIEW) %}
+                                <li class="nav-item">
+                                    <a href="{{ path('app_timesheet_index') }}" class="nav-link {% if current_route starts with 'app_timesheet_' %}active{% endif %}">
+                                        <i class="bi bi-table me-2"></i>Табель
                                     </a>
                                 </li>
                             {% endif %}

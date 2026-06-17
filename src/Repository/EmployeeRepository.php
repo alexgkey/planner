@@ -93,4 +93,29 @@ class EmployeeRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    /**
+     * @return Employee[]
+     */
+    public function findActiveForTimesheet(?Department $scopeDepartment = null): array
+    {
+        $qb = $this->createQueryBuilder('e')
+            ->leftJoin('e.department', 'd')
+            ->addSelect('d')
+            ->andWhere('e.isActive = :active')
+            ->setParameter('active', true);
+
+        if (null !== $scopeDepartment) {
+            $qb
+                ->andWhere('e.department = :scopeDepartment')
+                ->setParameter('scopeDepartment', $scopeDepartment);
+        }
+
+        $qb
+            ->addOrderBy('CASE WHEN d.title IS NULL THEN 1 ELSE 0 END', 'ASC')
+            ->addOrderBy('d.title', 'ASC')
+            ->addOrderBy('e.fio', 'ASC');
+
+        return $qb->getQuery()->getResult();
+    }
 }
