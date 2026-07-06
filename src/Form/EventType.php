@@ -2,12 +2,14 @@
 
 namespace App\Form;
 
+use App\Entity\Department;
 use App\Entity\Enum\EventAccessibility;
 use App\Entity\Enum\EventDirection;
 use App\Entity\Enum\EventLevel;
 use App\Entity\Enum\OnOffLine;
 use App\Entity\Enum\TargetAudience;
 use App\Entity\Event;
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
@@ -41,7 +43,26 @@ class EventType extends AbstractType
             ->add('venue', TextType::class, [
                 'label' => 'Место проведения',
                 'required' => false,
-            ])
+            ]);
+
+        if ($options['include_department']) {
+            $departmentFieldOptions = [
+                'class' => Department::class,
+                'choice_label' => 'title',
+                'placeholder' => 'Выберите отдел',
+                'label' => 'Отдел',
+                'required' => true,
+            ];
+
+            if (null !== $options['department_choices']) {
+                $departmentFieldOptions['choices'] = $options['department_choices'];
+                $departmentFieldOptions['placeholder'] = false;
+            }
+
+            $builder->add('department', EntityType::class, $departmentFieldOptions);
+        }
+
+        $builder
             ->add('eventLevel', EnumType::class, [
                 'class' => EventLevel::class,
                 'label' => 'Уровень',
@@ -99,6 +120,11 @@ class EventType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => Event::class,
+            'include_department' => false,
+            'department_choices' => null,
         ]);
+
+        $resolver->setAllowedTypes('include_department', 'bool');
+        $resolver->setAllowedTypes('department_choices', ['null', 'array']);
     }
 }

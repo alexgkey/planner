@@ -218,25 +218,35 @@ class EventController extends AbstractController
     }
 
     #[Route('/new', name: 'app_event_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request, EntityManagerInterface $entityManager, DepartmentRepository $departmentRepository): Response
     {
         if (!$this->canDuplicateEvent()) {
             throw $this->createAccessDeniedException('Недостаточно прав для создания мероприятия.');
         }
 
         $user = $this->getUser();
+        $canChooseDepartment = $this->canChooseDepartmentForCreatedEvent();
         $department = $user?->getEmployee()?->getDepartment();
-        if (null === $department) {
+        if (!$canChooseDepartment && null === $department) {
             throw $this->createAccessDeniedException('Для создания мероприятия у пользователя должен быть указан отдел.');
         }
 
         $event = new Event();
-        $form = $this->createForm(EventType::class, $event);
+        if (!$canChooseDepartment) {
+            $event->setDepartment($department);
+        }
+
+        $form = $this->createForm(EventType::class, $event, $this->buildEventFormOptions(
+            $canChooseDepartment,
+            $departmentRepository
+        ));
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $event->setCreator($user);
-            $event->setDepartment($department);
+            if (!$canChooseDepartment) {
+                $event->setDepartment($department);
+            }
             $entityManager->persist($event);
             $entityManager->flush();
 
@@ -262,7 +272,7 @@ class EventController extends AbstractController
     }
 
     #[Route('/{id}/duplicate', name: 'app_event_duplicate', methods: ['GET', 'POST'])]
-    public function duplicate(Request $request, Event $sourceEvent, EntityManagerInterface $entityManager): Response
+    public function duplicate(Request $request, Event $sourceEvent, EntityManagerInterface $entityManager, DepartmentRepository $departmentRepository): Response
     {
         $this->denyAccessUnlessGranted(AppPermissions::EVENT_VIEW, $sourceEvent);
 
@@ -279,12 +289,18 @@ class EventController extends AbstractController
         $this->copyEventData($sourceEvent, $event);
         $event->setDepartment($targetDepartment);
 
-        $form = $this->createForm(EventType::class, $event);
+        $canChooseDepartment = $this->canChooseDepartmentForCreatedEvent();
+        $form = $this->createForm(EventType::class, $event, $this->buildEventFormOptions(
+            $canChooseDepartment,
+            $departmentRepository
+        ));
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $event->setCreator($this->getUser());
-            $event->setDepartment($targetDepartment);
+            if (!$canChooseDepartment) {
+                $event->setDepartment($targetDepartment);
+            }
             $entityManager->persist($event);
             $entityManager->flush();
 
@@ -887,6 +903,28 @@ class EventController extends AbstractController
         return $this->isGranted(AppPermissions::EVENT_ADMIN)
             || $this->isGranted(AppPermissions::EVENT_MANAGE_ANY)
             || $this->isGranted(AppPermissions::EVENT_MANAGE_OWN);
+    }
+
+    private function canChooseDepartmentForCreatedEvent(): bool
+    {
+        return $this->isGranted(AppPermissions::EVENT_ADMIN);
+    }
+
+    /**
+     * @return array{include_department: bool, department_choices?: Department[]}
+     */
+    private function buildEventFormOptions(bool $includeDepartment, DepartmentRepository $departmentRepository): array
+    {
+        if (!$includeDepartment) {
+            return [
+                'include_department' => false,
+            ];
+        }
+
+        return [
+            'include_department' => true,
+            'department_choices' => $departmentRepository->findActive(),
+        ];
     }
 
     /**
