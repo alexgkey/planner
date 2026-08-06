@@ -36,6 +36,8 @@ class EventFilterService
      *     selected_directions: string[],
      *     selected_accessibilities: string[],
      *     selected_audiences: string[],
+     *     selected_date_from: ?string,
+     *     selected_date_to: ?string,
      *     include_undated: bool
      * }
      */
@@ -83,6 +85,7 @@ class EventFilterService
         $selectedDirections = $this->resolveSelectedValues($request, 'directions', array_map(static fn (EventDirection $case): string => $case->value, $directionOptions));
         $selectedAccessibilities = $this->resolveSelectedValues($request, 'accessibilities', array_map(static fn (EventAccessibility $case): string => $case->value, $accessibilityOptions));
         $selectedAudiences = $this->resolveSelectedValues($request, 'audiences', array_map(static fn (TargetAudience $case): string => $case->value, $audienceOptions));
+        [$selectedDateFrom, $selectedDateTo] = $this->resolveDateRange($request);
 
         $includeUndated = filter_var(
             $request->query->get('include_undated', '1'),
@@ -102,6 +105,8 @@ class EventFilterService
             $selectedDirections,
             $selectedAccessibilities,
             $selectedAudiences,
+            $selectedDateFrom,
+            $selectedDateTo,
             $includeUndated,
             $excludeCancelled
         );
@@ -124,6 +129,8 @@ class EventFilterService
             'selected_directions' => $selectedDirections,
             'selected_accessibilities' => $selectedAccessibilities,
             'selected_audiences' => $selectedAudiences,
+            'selected_date_from' => $selectedDateFrom,
+            'selected_date_to' => $selectedDateTo,
             'include_undated' => $includeUndated,
         ];
     }
@@ -137,6 +144,8 @@ class EventFilterService
      * @param string[] $selectedDirections
      * @param string[] $selectedAccessibilities
      * @param string[] $selectedAudiences
+     * @param ?string $selectedDateFrom
+     * @param ?string $selectedDateTo
      * @return Event[]
      */
     public function filterEvents(
@@ -148,6 +157,8 @@ class EventFilterService
         array $selectedDirections,
         array $selectedAccessibilities,
         array $selectedAudiences,
+        ?string $selectedDateFrom,
+        ?string $selectedDateTo,
         bool $includeUndated,
         bool $excludeCancelled = false,
     ): array {
@@ -159,6 +170,8 @@ class EventFilterService
             $selectedDirections,
             $selectedAccessibilities,
             $selectedAudiences,
+            $selectedDateFrom,
+            $selectedDateTo,
             $includeUndated,
             $excludeCancelled
         ): bool {
@@ -171,8 +184,19 @@ class EventFilterService
                 if (!$includeUndated) {
                     return false;
                 }
-            } elseif (!in_array($eventDate->format('Y-m'), $selectedMonths, true)) {
-                return false;
+            } else {
+                if (!in_array($eventDate->format('Y-m'), $selectedMonths, true)) {
+                    return false;
+                }
+
+                $eventDateValue = $eventDate->format('Y-m-d');
+                if (null !== $selectedDateFrom && $eventDateValue < $selectedDateFrom) {
+                    return false;
+                }
+
+                if (null !== $selectedDateTo && $eventDateValue > $selectedDateTo) {
+                    return false;
+                }
             }
 
             if ([] !== $selectedDepartmentIds) {
@@ -237,5 +261,40 @@ class EventFilterService
         $selectedValues = array_values(array_intersect($selectedValues, $allowedValues));
 
         return [] === $selectedValues ? $allowedValues : $selectedValues;
+    }
+
+    /**
+     * @return array{?string, ?string}
+     */
+    private function resolveDateRange(Request $request): array
+    {
+        $dateFrom = $this->normalizeDateInput($request->query->get('date_from'));
+        $dateTo = $this->normalizeDateInput($request->query->get('date_to'));
+
+        if (null !== $dateFrom && null !== $dateTo && $dateFrom > $dateTo) {
+            return [$dateTo, $dateFrom];
+        }
+
+        return [$dateFrom, $dateTo];
+    }
+
+    private function normalizeDateInput(mixed $value): ?string
+    {
+        if (!is_scalar($value)) {
+            return null;
+        }
+
+        $value = trim((string) $value);
+        if ('' === $value) {
+            return null;
+        }
+
+        $date = \DateTimeImmutable::createFromFormat('Y-m-d', $value);
+        $errors = \DateTimeImmutable::getLastErrors();
+        if (false === $date || ($errors['warning_count'] ?? 0) > 0 || ($errors['error_count'] ?? 0) > 0) {
+            return null;
+        }
+
+        return $date->format('Y-m-d');
     }
 }
