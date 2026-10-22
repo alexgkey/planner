@@ -12,3 +12,7 @@
 ###> liip/imagine-bundle ###
 /public/media/cache/
 ###< liip/imagine-bundle ###
+
+# User-uploaded files are runtime data and must not be committed.
+/public/uploads/
+/public/.htaccess
