@@ -10,6 +10,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
+use Psr\Log\LoggerInterface;
 
 class EventVoter extends Voter
 {
@@ -18,7 +19,10 @@ class EventVoter extends Voter
     public const ADD_REPORT = 'EVENT_ADD_REPORT';
     public const CANCEL = 'EVENT_CANCEL';
 
-    public function __construct(private readonly Security $security)
+    public function __construct(
+        private readonly Security $security,
+        private readonly LoggerInterface $logger,
+    )
     {
     }
 
@@ -93,10 +97,14 @@ class EventVoter extends Voter
     private function canAddReport(User $user, Event $event): bool
     {
         if ($event->getStatus() === EventStatus::CANCELLED) {
+            $this->logReportDenied($user, $event, 'event_cancelled');
+
             return false;
         }
 
         if (!$this->isReportEditableEvent($event)) {
+            $this->logReportDenied($user, $event, 'event_date_is_in_future_or_missing');
+
             return false;
         }
 
@@ -104,8 +112,30 @@ class EventVoter extends Voter
             return true;
         }
 
-        return $this->security->isGranted(AppPermissions::EVENT_MANAGE_OWN)
-            && $this->isInOwnDepartment($user, $event);
+        $hasOwnPermission = $this->security->isGranted(AppPermissions::EVENT_MANAGE_OWN);
+        $sameDepartment = $this->isInOwnDepartment($user, $event);
+
+        if (!$hasOwnPermission) {
+            $this->logReportDenied($user, $event, 'missing_event_manage_own_permission');
+        } elseif (!$sameDepartment) {
+            $this->logReportDenied($user, $event, 'different_or_missing_department');
+        }
+
+        return $hasOwnPermission && $sameDepartment;
+    }
+
+    private function logReportDenied(User $user, Event $event, string $reason): void
+    {
+        $this->logger->warning('Access denied while adding event report.', [
+            'reason' => $reason,
+            'event_id' => $event->getId(),
+            'event_status' => $event->getStatus()->value,
+            'event_date' => $event->getDate()?->format('Y-m-d'),
+            'event_department_id' => $event->getDepartment()?->getId(),
+            'user_id' => $user->getId(),
+            'user_email' => $user->getUserIdentifier(),
+            'user_department_id' => $user->getEmployee()?->getDepartment()?->getId(),
+        ]);
     }
 
     private function isInOwnDepartment(User $user, Event $event): bool
